@@ -8,7 +8,7 @@
         <div class="col-md-10">
             <div class="card p-3 py-4" id="searchCard">
                 <h5>Financial information search</h5>
-                  <form action={% url 'retrieval:results' %} method="POST">
+                  <form name='searchForm' action={% url 'retrieval:results' %} onsubmit="return validateForm()" method="POST">
                     {% csrf_token %}
                     <div class="row g-3 mt-2">
                         <div class="col-md-3">
@@ -27,9 +27,9 @@
                             <div class="card card-body">
                                 <div class="row">
                                     <div class="input-group input-daterange">
-                                      <input type="text" class="form-control" name="date_start" value='{% now "Y-m-d" %}'>
+                                      <input type="text" id="date-start" class="form-control" name="date_start" value='{% now "d/m/Y" %}'>
                                       <div class="input-group-addon">to</div>
-                                      <input type="text" class="form-control" name="date_end" value='{% now "Y-m-d" %}'>
+                                      <input type="text" id="date-end" class="form-control" name="date_end" value='{% now "d/m/Y" %}'>
                                     </div>
                                 </div>
                             </div>

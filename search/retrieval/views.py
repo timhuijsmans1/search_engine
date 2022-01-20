@@ -13,6 +13,8 @@ def index(request):
 def results(request):
     form_data = value=request.POST
 
+    # date validator
+
     context = {
         'category': form_data.get('category'),
         'query': form_data.get('query'),
