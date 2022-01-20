@@ -1,13 +1,13 @@
 import re
+from typing import Union, Any
+
 from preprocessing import Preprocessing
+
 
 def read_text_file(filepath):
     with open(filepath) as f:
         lines = f.readlines()
         return lines
-
-
-
 
 
 def read_index_from_file(filepath):
@@ -50,4 +50,40 @@ def read_index_from_file(filepath):
     return inverted_index_dict
 
 
+def get_term_entry_from_inverted_index(inverted_index, term):
+    if term in inverted_index:
+        inverted_index_term = inverted_index[term]
+        return inverted_index_term
 
+
+def extract_all_documents_term_appears_in(inverted_index_term):
+    """
+    Function to get all the documents the term has appeared in
+    Extracted from the inverted index
+    """
+    documents_term_appears_in = []
+    for k, v in inverted_index_term[1].items():  # key = documentNo, value = number of appearances
+        documents_term_appears_in.append(k)
+    return documents_term_appears_in
+
+
+def create_doc_dictionary(element_tree, preprocessor):
+    """
+    Function to create a document dictionary from a given XML Element Tree
+    Loops over all elements in the tree
+    If the element tag is "DOCNO", then a new entry is created in the dictionary with the key as the document number
+    Else, if the element tag is "HEADLINE" or "TEXT", the value for the newly created key is stored appended with the text
+    The function returns the dictionary with all key, value pairs encountered
+
+    """
+    current_document = 0
+    document_dict: dict[Union[int, Any], list[Any]] = {}
+    for elt in element_tree.iter():
+        if elt.tag == "DOCNO":
+            current_document = int(elt.text)
+            document_dict[current_document] = []
+        elif elt.tag == "HEADLINE" or elt.tag == "TEXT":
+            document_dict[current_document].append(elt.text)
+    for key, value in document_dict.items():
+        document_dict[key] = preprocessor.apply_preprocessing(document_dict[key])
+    return document_dict
