@@ -1,0 +1,35 @@
+#baseBody {
+    background-color: #f2dfce
+}
+
+#searchCard {
+    background-color: #fff9f5
+}
+
+#searchContainer {
+    margin-top: 200px !important
+}
+
+.advanced {
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500
+}
+
+.btn-secondary,
+.btn-secondary:focus,
+.btn-secondary:active {
+    color: #fff9f5;
+    background-color: #0d7680 !important;
+    border-color: #0d7680 !important;
+    box-shadow: none
+}
+
+.advanced {
+    color: #0d7680 !important
+}
+
+.form-control:focus {
+    box-shadow: none;
+    border: 1px solid #0d7680
+}
