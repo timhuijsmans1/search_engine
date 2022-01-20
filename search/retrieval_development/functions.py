@@ -1,4 +1,13 @@
 import re
+from preprocessing import Preprocessing
+
+def read_text_file(filepath):
+    with open(filepath) as f:
+        lines = f.readlines()
+        return lines
+
+
+
 
 
 def read_index_from_file(filepath):
@@ -10,7 +19,7 @@ def read_index_from_file(filepath):
                                                     document2: [position1, position2, ...]}
                                                     ]
     """
-    number_pattern = r'[0-9]+' # regex
+    number_pattern = r'[0-9]+'  # regex
     inverted_index_dict = {}
     with open(filepath) as f:
         # is_new_term flags the first entry in the document which will represent a term
@@ -31,21 +40,14 @@ def read_index_from_file(filepath):
                 # each document it appears in
                 is_new_term = False
             else:
-                document_entries = re.findall(number_pattern, line) # extracting ony number to get rid of ":" and new
+                document_entries = re.findall(number_pattern, line)  # extracting ony number to get rid of ":" and new
                 # line characters
-                document_id = int(document_entries[0]) # first entry is document id
-                positions = document_entries[1:] # rest of entries are positions in the doc
-                positions = [int(position) for position in positions] # converting to integer
+                document_id = int(document_entries[0])  # first entry is document id
+                positions = document_entries[1:]  # rest of entries are positions in the doc
+                positions = [int(position) for position in positions]  # converting to integer
                 inverted_index_dict[term].append({})
                 inverted_index_dict[term][1][document_id] = positions
     return inverted_index_dict
 
-if __name__ == '__main__':
-    inverted_index = read_index_from_file("inverted_index.txt")
-    queries = ["income tax reduction", "peace in the Middle East", "unemployment rate in UK",
-               "industry in Scotland", "the industries of computers", "Microsoft Wdinows", "stock market in Japan",
-               "the education with computers", "health industry", "campaigns of political parties"]
 
 
-
-    test = 0
