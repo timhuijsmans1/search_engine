@@ -33,7 +33,7 @@ class Vsm_model:
         """
         tf = query.count(term) / len(query)  # how many times the term appears in the query / query_length (for normalization)
         df = len(documents_appearing_in[term])
-        idf = 1 + math.log(N/df)  # as per the red boxes in the slide
+        idf = 1 + math.log(N/df)  # IDF is the same regardless if we are looking for query or document weight term
         w_t_q = tf * idf
         return w_t_q
 
@@ -61,7 +61,7 @@ class Vsm_model:
                 w_t_q = self.compute_weight_term_query(term, query, N, documents_appearing_in)
                 document_vector.append(w_t_d)
                 query_vector.append(w_t_q)
-                score += w_t_d * w_t_q  # multiply the two for a the score
+                score += w_t_d * w_t_q  # dot product
             document_vector_magnitude = np.linalg.norm(document_vector)
             query_vector_magnitude = np.linalg.norm(query_vector)
             score = score / (document_vector_magnitude*query_vector_magnitude)  # need to get the length of the document
