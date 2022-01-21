@@ -1,6 +1,7 @@
 import math
 from functools import reduce
 import xml.etree.ElementTree as ET
+import numpy as np
 
 from preprocessing import Preprocessing
 from functions import read_index_from_file, create_doc_dictionary
@@ -10,28 +11,29 @@ from functions import extract_all_documents_term_appears_in
 
 class Vsm_model:
 
-    def compute_weight_term_document(self, term, document, positional_inverted_index, documents_appearing_in, N):
+    def compute_weight_term_document(self, term, document, positional_inverted_index, documents_appearing_in, N, document_dict):
         """
         Function to compute the term weight based on TFIDF term weighing
         """
         if document not in positional_inverted_index[term][1]:
             w_t_d = 0
         else:
-            tf = len(positional_inverted_index[term][1][document])  # how often the term appears in the current document
-            tf = 1 + math.log10(tf)
+            tf = len(positional_inverted_index[term][1][document]) / len(document_dict[document]) # how often the term appears in the current document /document size (for normalization)
+
             df = len(documents_appearing_in[term])
-            idf = math.log10(N / df)
+            idf = 1 + math.log(N/df) # Total Number of Docs / Numbers of docs with the term in them
             w_t_d = tf * idf
         return w_t_d
 
-    def compute_weight_term_query(self, term, query):
+
+    def compute_weight_term_query(self, term, query, N, documents_appearing_in):
         """
         Slide 21 - lecture 7 - red boxes are for query
         follows lnc.ltc schema -
         """
-        term_freq = query.count(term)  # how many times the term appears in the query
-        tf = 1 + math.log10(term_freq)  #
-        idf = 1  # as per the red boxes in the slide
+        tf = query.count(term) / len(query)  # how many times the term appears in the query / query_length (for normalization)
+        df = len(documents_appearing_in[term])
+        idf = 1 + math.log(N/df)  # as per the red boxes in the slide
         w_t_q = tf * idf
         return w_t_q
 
@@ -52,11 +54,17 @@ class Vsm_model:
         document_scores = {}  # Dictionary to map document id with computed score
         for document in union_of_documents:
             score = 0
+            document_vector = []
+            query_vector = []
             for term in query:
-                w_t_d = self.compute_weight_term_document(term, document, pos_inverted_index, documents_appearing_in, N)
-                w_t_q = self.compute_weight_term_query(term, query)
+                w_t_d = self.compute_weight_term_document(term, document, pos_inverted_index, documents_appearing_in, N, document_dict)
+                w_t_q = self.compute_weight_term_query(term, query, N, documents_appearing_in)
+                document_vector.append(w_t_d)
+                query_vector.append(w_t_q)
                 score += w_t_d * w_t_q  # multiply the two for a the score
-            score = score / len(document_dict[document])  # need to get the length of the document
+            document_vector_magnitude = np.linalg.norm(document_vector)
+            query_vector_magnitude = np.linalg.norm(query_vector)
+            score = score / (document_vector_magnitude*query_vector_magnitude)  # need to get the length of the document
             document_scores[document] = score  # append the final score for each document
         sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
         sorted_document_scores = sorted_document_scores[:100]
@@ -64,7 +72,7 @@ class Vsm_model:
 
 if __name__ == '__main__':
     preprocessor = Preprocessing()
-    Vsm_model = Vsm_model() # Initialise class
+    Vsm_model = Vsm_model()  # Initialise class
     # Read the collection
     tree = ET.parse("trec.5000.xml")
     document_dic = create_doc_dictionary(tree, preprocessor)
