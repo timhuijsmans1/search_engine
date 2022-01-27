@@ -30,6 +30,11 @@
     font-weight: 500
 }
 
+#result-list {
+    list-style: none;
+    padding-left: 0px; 
+}
+
 .btn-secondary,
 .btn-secondary:focus,
 .btn-secondary:active {
@@ -47,3 +52,4 @@
     box-shadow: none;
     border: 1px solid #0d7680
 }
+

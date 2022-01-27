@@ -1,7 +1,10 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 
+from retrieval.models import Article
+
 from datetime import datetime
+
 
 
 def index(request):
@@ -15,7 +18,7 @@ def index(request):
 def results(request):
     form_data = value=request.GET
 
-    # validate form input, redirect back to home otherwise
+    # validate category and query input, redirect back to home otherwise
     if form_data.get('category') == None:
         return redirect('retrieval:index')
     if form_data.get('query') == None:
@@ -53,12 +56,25 @@ def results(request):
             'date_end': form_data.get('date_end'),
         }
 
-    # TODO
-    # standard: retrieve doc numbers, query database for doc numbers only
-    
     else:
+        # TODO
+        # standard: retrieve doc numbers, query database for doc numbers only
+
+        # IR retrieval and ranking for doc numbers
+        ranked_docs = [4,5,1]
+
+        # query DB with docnumbers
+        results = [Article.objects.get(document_id=doc) for doc in ranked_docs]
+        print(results[1].publication_date.strftime('%m/%d/%Y'))
         context = {
-            'category': form_data.get('category'),
-            'query': form_data.get('query'),
+            'results': results,
         }
     return render(request, 'retrieval/results.html', context)
+
+def article_detail(request, document_id):
+    article = get_object_or_404(Article, document_id=document_id)
+
+    context = {
+        'article': article,
+    }
+    return render(request, 'retrieval/detail.html', context)
