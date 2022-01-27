@@ -6,8 +6,3 @@ class Article(models.Model):
     body = models.TextField()
     url = models.URLField()
     publication_date = models.DateField(auto_now=False, null=True, blank=True)
-    author = models.CharField(max_length=300, null=True, blank=True)
-    source = models.CharField(max_length=400, null=True, blank=True)
-
-
-

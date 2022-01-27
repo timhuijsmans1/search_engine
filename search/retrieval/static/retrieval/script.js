@@ -38,7 +38,8 @@ function validateForm() {
     var dateEnd = document.forms["searchForm"]["date_end"].value;
     
     
-    if(isValidDate(dateStart) == false || isValidDate(dateEnd) == false)
+    if(isValidDate(dateStart) == false || isValidDate(dateEnd) == false) {
         alert("please provide a valid date in dd/mm/yyyy format");
         return false;
-  }
+    }
+}

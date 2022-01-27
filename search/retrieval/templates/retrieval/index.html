@@ -8,8 +8,7 @@
         <div class="col-md-10">
             <div class="card p-3 py-4" id="searchCard">
                 <h5>Financial information search</h5>
-                  <form name='searchForm' action={% url 'retrieval:results' %} onsubmit="return validateForm()" method="POST">
-                    {% csrf_token %}
+                  <form name='searchForm' action={% url 'retrieval:results' %} onsubmit="return validateForm()" method="GET">
                     <div class="row g-3 mt-2">
                         <div class="col-md-3">
                             <div class="btn btn-secondary">

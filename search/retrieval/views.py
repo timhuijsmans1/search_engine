@@ -11,7 +11,7 @@ def index(request):
     return render(request, 'retrieval/index.html', context)
 
 def results(request):
-    form_data = value=request.POST
+    form_data = value=request.GET
 
     # date validator
 
