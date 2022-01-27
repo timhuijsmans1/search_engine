@@ -12,7 +12,8 @@
                     <div class="row g-3 mt-2">
                         <div class="col-md-3">
                             <div class="btn btn-secondary">
-                                  <select name='category'>
+                                  <select name='category' name="category-selector">
+                                      <option class="dropdown-item" value="" disabled selected>Select category</option>
                                       <option class="dropdown-item" value='news'>News articles</option>
                                       <option class="dropdown-item" value='youtube'>Youtube videos</option>
                                   </select>
@@ -25,10 +26,16 @@
                         <div class="collapse" id="Advanced">
                             <div class="card card-body">
                                 <div class="row">
+                                    <div class="custom-control custom-switch" id="toggle-box">
+                                        <input type="checkbox" class="custom-control-input" id="date-switch" onclick="toggleDateElements()">
+                                        <label class="custom-control-label" for="date-switch">Toggle to enable date filters</label>
+                                    </div>
+                                </div>
+                                <div class="row">
                                     <div class="input-group input-daterange">
-                                      <input type="text" id="date-start" class="form-control" name="date_start" value='{% now "d/m/Y" %}'>
+                                      <input type="text" id="date-start" class="form-control" name="date_start" value='{% now "m/d/Y" %}' disabled>
                                       <div class="input-group-addon">to</div>
-                                      <input type="text" id="date-end" class="form-control" name="date_end" value='{% now "d/m/Y" %}'>
+                                      <input type="text" id="date-end" class="form-control" name="date_end" value='{% now "m/d/Y" %}' disabled>
                                     </div>
                                 </div>
                             </div>
@@ -38,5 +45,5 @@
             </div>
         </div>
     </div>
-  </div>
+  </div> 
 {% endblock %}

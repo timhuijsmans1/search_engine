@@ -7,6 +7,16 @@ $(function() {
     $( "#date-end" ).datepicker();
 });
 
+function toggleDateElements() {
+    if(document.getElementById('date-start').disabled == false){
+        document.getElementById('date-start').disabled = true;
+        document.getElementById('date-end').disabled = true;
+    } else {
+        document.getElementById('date-start').disabled = false;
+        document.getElementById('date-end').disabled = false;
+    }
+}
+
 function isValidDate(dateString)
 {
     // First check for the pattern
@@ -15,8 +25,8 @@ function isValidDate(dateString)
 
     // Parse the date parts to integers
     var parts = dateString.split("/");
-    var month = parseInt(parts[1], 10);
-    var day = parseInt(parts[0], 10);
+    var day = parseInt(parts[1], 10);
+    var month = parseInt(parts[0], 10);
     var year = parseInt(parts[2], 10);
 
     // Check the ranges of month and year
@@ -36,10 +46,19 @@ function isValidDate(dateString)
 function validateForm() {
     var dateStart = document.forms["searchForm"]["date_start"].value;
     var dateEnd = document.forms["searchForm"]["date_end"].value;
-    
-    
+
     if(isValidDate(dateStart) == false || isValidDate(dateEnd) == false) {
-        alert("please provide a valid date in dd/mm/yyyy format");
+        alert("Please provide valid dates in mm/dd/yyyy format");
+        return false;
+    }
+
+    if(new Date(dateEnd) < new Date(dateStart)){
+        alert("End date can not be before start date")
+        return false;
+    }
+
+    if(new Date(dateStart) > Date.now()){
+        alert("Please select a start date in the past, there is no news from the future")
         return false;
     }
 }
