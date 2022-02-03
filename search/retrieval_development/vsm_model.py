@@ -61,10 +61,10 @@ class Vsm_model:
                 w_t_q = self.compute_weight_term_query(term, query, N, documents_appearing_in)
                 document_vector.append(w_t_d)
                 query_vector.append(w_t_q)
-                score += w_t_d * w_t_q  # dot product
+                score += w_t_d * w_t_q  # dot product (the summation of the terms in each vector multiplied)
             document_vector_magnitude = np.linalg.norm(document_vector)
             query_vector_magnitude = np.linalg.norm(query_vector)
-            score = score / (document_vector_magnitude*query_vector_magnitude)  # need to get the length of the document
+            score = score / (document_vector_magnitude*query_vector_magnitude)  # the product of the magnitudes of the two vectors
             document_scores[document] = score  # append the final score for each document
         sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
         sorted_document_scores = sorted_document_scores[:100]
@@ -85,4 +85,3 @@ if __name__ == '__main__':
     N = len(document_dic)
     for i, query in enumerate(queries):
         query_results_dict[i] = Vsm_model.ranked_retrieval(query, inverted_index, N, document_dic)
-    test = 0
