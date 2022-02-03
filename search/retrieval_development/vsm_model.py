@@ -1,3 +1,4 @@
+import json
 import math
 from functools import reduce
 import xml.etree.ElementTree as ET
@@ -11,14 +12,14 @@ from functions import extract_all_documents_term_appears_in
 
 class Vsm_model:
 
-    def compute_weight_term_document(self, term, document, positional_inverted_index, documents_appearing_in, N, document_dict):
+    def compute_weight_term_document(self, term, document, positional_inverted_index, documents_appearing_in, N, doc_size):
         """
         Function to compute the term weight based on TFIDF term weighing
         """
         if document not in positional_inverted_index[term][1]:
             w_t_d = 0
         else:
-            tf = len(positional_inverted_index[term][1][document]) / len(document_dict[document]) # how often the term appears in the current document /document size (for normalization)
+            tf = len(positional_inverted_index[term][1][document]) / (doc_size[document]) # how often the term appears in the current document /document size (for normalization)
 
             df = len(documents_appearing_in[term])
             idf = 1 + math.log(N/df) # Total Number of Docs / Numbers of docs with the term in them
@@ -37,7 +38,7 @@ class Vsm_model:
         w_t_q = tf * idf
         return w_t_q
 
-    def ranked_retrieval(self, query, pos_inverted_index, N, document_dict):
+    def ranked_retrieval(self, query, pos_inverted_index, N, doc_size):
         """
         Ranked retrieval using cosine similarity algorithm
         N - total number of documents in the collection
@@ -57,7 +58,7 @@ class Vsm_model:
             document_vector = []
             query_vector = []
             for term in query:
-                w_t_d = self.compute_weight_term_document(term, document, pos_inverted_index, documents_appearing_in, N, document_dict)
+                w_t_d = self.compute_weight_term_document(term, document, pos_inverted_index, documents_appearing_in, N, doc_size)
                 w_t_q = self.compute_weight_term_query(term, query, N, documents_appearing_in)
                 document_vector.append(w_t_d)
                 query_vector.append(w_t_q)
@@ -74,14 +75,21 @@ if __name__ == '__main__':
     preprocessor = Preprocessing()
     Vsm_model = Vsm_model()  # Initialise class
     # Read the collection
-    tree = ET.parse("trec.5000.xml")
-    document_dic = create_doc_dictionary(tree, preprocessor)
-    inverted_index = read_index_from_file("inverted_index.txt")
-    queries = ["income tax reduction", "peace in the Middle East", "unemployment rate in UK",
-               "industry in Scotland", "the industries of computers", "Microsoft Wdinows", "stock market in Japan",
-               "the education with computers", "health industry", "campaigns of political parties"]
-    queries = [preprocessor.preprocess_query(query) for query in queries]
-    query_results_dict = {}
-    N = len(document_dic)
-    for i, query in enumerate(queries):
-        query_results_dict[i] = Vsm_model.ranked_retrieval(query, inverted_index, N, document_dic)
+    # tree = ET.parse("trec.5000.xml")
+    # document_dic = create_doc_dictionary(tree, preprocessor)
+    # inverted_index = read_index_from_file("inverted_index.txt")
+    # queries = ["income tax reduction", "peace in the Middle East", "unemployment rate in UK",
+    #            "industry in Scotland", "the industries of computers", "Microsoft Wdinows", "stock market in Japan",
+    #            "the education with computers", "health industry", "campaigns of political parties"]
+    #
+
+    with open('result.json') as results:
+        with open('content_length.json') as docs:
+            inv_ind = json.load(results)
+            doc_size = json.load(docs)
+            query = input("Enter query: ")
+            query = preprocessor.preprocess_query(query)
+            query_results_dict = {}
+            N = len(doc_size.keys())
+            query_results_dict = Vsm_model.ranked_retrieval(query, inv_ind, N, doc_size)
+            stop = 0
