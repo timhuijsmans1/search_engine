@@ -83,7 +83,7 @@ if __name__ == '__main__':
     #            "the education with computers", "health industry", "campaigns of political parties"]
     #
 
-    with open('result.json') as results:
+    with open('inverted_index.json') as results:
         with open('content_length.json') as docs:
             inv_ind = json.load(results)
             doc_size = json.load(docs)
