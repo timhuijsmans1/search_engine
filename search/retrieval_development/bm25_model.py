@@ -59,8 +59,9 @@ class bm25_model:
     def extract_all_documents_term_appears_in(self, inverted_index_term):
 
         documents_term_appears_in = []
-        for k in inverted_index_term.keys():
-            documents_term_appears_in.append(k)
+        if inverted_index_term:
+            for k in inverted_index_term.keys():
+                documents_term_appears_in.append(k)
         return documents_term_appears_in
 
     def consecutive_occ(self, inverted_index_doc):
@@ -99,15 +100,19 @@ class bm25_model:
 
         document_scores = {}
 
+        if not union_of_documents:
+            return False
+
         for document in union_of_documents:
 
             score = 0
             document_vector = []
 
             for term in query:
-                w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size)
-                document_vector.append(w_t_d)
-                score += w_t_d
+                if term_inverted_indexes[term]:
+                    w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size)
+                    document_vector.append(w_t_d)
+                    score += w_t_d
 
             document_scores[document] = score
 
@@ -138,6 +143,8 @@ class bm25_model:
             if cons_count > 0:
                 tf[doc] = cons_count
                 df += 1
+        if not intersection_of_documents:
+            return False
 
         for doc in intersection_of_documents:
 
@@ -161,11 +168,12 @@ if __name__ == '__main__':
     query = input("Enter query: ")
     if '"' in query:
         phrase_bool = True
-
-    query = re.sub(r'[^\w]', ' ', query)
-    query = preprocessor.preprocess_query(query)
-    del query[0]
-    del query[-1]
+        query = re.sub(r'[^\w]', ' ', query)
+        query = preprocessor.preprocess_query(query)
+        del query[0]
+        del query[-1]
+    else:
+        query = preprocessor.preprocess_query(query)
 
     if phrase_bool:
         phrase_query_results_dict = {}
