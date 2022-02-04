@@ -1,3 +1,5 @@
+# https://machinelearningmastery.com/text-generation-lstm-recurrent-neural-networks-python-keras/
+
 import numpy
 import numpy as np
 from keras.models import Sequential

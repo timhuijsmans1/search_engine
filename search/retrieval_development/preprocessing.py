@@ -28,7 +28,7 @@ class Preprocessing:
     def tokenize_text_file(self, text_file):
         tokenized_file = []
         if isinstance(text_file, str):  # Checking whether input is only a string or a text-file
-            text_file = re.findall(r'[\w]+', text_file)
+            text_file = re.findall(r'[¢£€\w]+', text_file)
             return text_file
         for i in range(len(text_file)):
             line = text_file[i]

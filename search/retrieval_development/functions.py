@@ -62,7 +62,7 @@ def extract_all_documents_term_appears_in(inverted_index_term):
     Extracted from the inverted index
     """
     documents_term_appears_in = []
-    for k, v in inverted_index_term[1].items():  # key = documentNo, value = number of appearances
+    for k, v in inverted_index_term.items():  # key = documentNo, value = number of appearances
         documents_term_appears_in.append(k)
     return documents_term_appears_in
 
