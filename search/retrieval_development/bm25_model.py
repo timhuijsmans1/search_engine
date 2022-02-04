@@ -65,11 +65,6 @@ class bm25_model:
 
     def consecutive_occ(self, inverted_index_doc):
 
-        # for i in range(inverted_index_doc - 1):
-        #     for pos1 in inverted_index_doc[i]:
-        #         for pos2 in inverted_index_doc[i+1]:
-        #             if pos2 - pos1
-
         tot = len(inverted_index_doc)
         tot_app = sorted(sum(inverted_index_doc, [])) # Main Assumption that one word is not occurring twice in a row
         count = 0
