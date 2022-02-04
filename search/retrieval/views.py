@@ -6,7 +6,6 @@ from retrieval.models import Article
 from datetime import datetime
 
 
-
 def index(request):
     string = "Hi page"
 
