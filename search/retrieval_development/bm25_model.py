@@ -72,10 +72,12 @@ class bm25_model:
 
         for i in range(len(tot_app)-1):
             if (tot_app[i+1] - tot_app[i]) == 1:
-                count += 1
-                if count == (tot - 1):
-                    consecutive += 1
-                    count = 0
+                for t in range(tot - 1):
+                    if tot_app[i] in inverted_index_doc[t] and tot_app[i+1] in inverted_index_doc[t+1]:
+                        count += 1
+                        if count == (tot - 1):
+                            consecutive += 1
+                            count = 0
 
             else:
                 count = 0
@@ -125,22 +127,19 @@ class bm25_model:
             term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
             documents_appearing_in[term] = self.extract_all_documents_term_appears_in(term_inverted_indexes[term])
 
-        union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+        intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
 
-        for doc in union_of_documents:
+        for doc in intersection_of_documents:
             positional_index = []
             for term in query:
-                try:
-                    positional_index.append(term_inverted_indexes[term][doc])
-                except:
-                    continue
+                positional_index.append(term_inverted_indexes[term][doc])
 
             cons_count = self.consecutive_occ(positional_index)
             if cons_count > 0:
                 tf[doc] = cons_count
                 df += 1
 
-        for doc in union_of_documents:
+        for doc in intersection_of_documents:
 
             if doc in tf.keys():
                 document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size)
@@ -154,7 +153,7 @@ if __name__ == '__main__':
     bm25_model = bm25_model()
     phrase_bool = False
 
-    with open('result.json') as results:
+    with open('inverted_index.json') as results:
         with open('content_length.json') as docs:
             inv_ind = json.load(results)
             doc_size = json.load(docs)
