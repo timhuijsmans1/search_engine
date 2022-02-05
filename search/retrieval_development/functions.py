@@ -63,6 +63,7 @@ def extract_all_documents_term_appears_in(inverted_index_term):
     """
     documents_term_appears_in = []
     for k, v in inverted_index_term.items():  # key = documentNo, value = number of appearances
+        # Can throw "Attribute Error: 'NoneType' object has no attribute items
         documents_term_appears_in.append(k)
     return documents_term_appears_in
 

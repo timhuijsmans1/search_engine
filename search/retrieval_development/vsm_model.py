@@ -23,7 +23,7 @@ class Vsm_model:
 
             doc_size_value = int(doc_size[document]) if doc_size[document] != 'NaN' else 1 # Extracting doc size -
             # some elements have 'NaN' entry TO DO: ask Humzah to check
-            tf = len(positional_inverted_index[term][document]) / doc_size_value  # how often the term
+            tf = len(positional_inverted_index[term][document]) # / doc_size_value  # how often the term
             # appears in the current document /document size (for normalization)
 
             df = len(documents_appearing_in[term])
