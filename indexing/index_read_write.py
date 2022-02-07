@@ -1,23 +1,4 @@
-import json 
-import bson
-
-def delta_encoder(inverted_positional_list, new_doc_number):
-    """
-    v-byte decode the current string (v-byte decode function below)
-    sum all the v-byte decoded deltas to get the previous doc number
-    calculate delta encoded doc number 
-
-    return
-    delta encoded doc number, ready for v-byte encoding
-    """
-    return
-
-def v_byte_encoder(doc_delta, positions, appearances):
-    """
-    return:
-    v-byte encoded doc number delta and position (doc_num, position)
-    """
-    return
+import json
 
 def index_extender(text_body, index, doc_number):
     """
@@ -27,84 +8,101 @@ def index_extender(text_body, index, doc_number):
     index : dictionary
         the current index with lists delta and v-byte encoded
 
-    for each word in body
-        check if word is in the index
-            if in the index:
-                delta encode the doc id of the new word based on all the previous doc numbers
-                v-byte encode the document count, delta and positions
-                add delta and position to the file
-            else:
-                v_byte encode doc number and position
-                make new inverted list 
+    return:
+    extended index in the following format: {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
     """
 
-    return
+    for position, word in enumerate(text_body):
+
+        if word in index:
+
+            # sums deltas to find the most recently added doc number of the current word.
+            last_doc_number = sum([doc_tuple[0] for doc_tuple in index[word][1]])
+            delta = doc_number - last_doc_number
+
+            # only add the position to the position list of the existing document number entry
+            if doc_number == last_doc_number: 
+                index[word][1][-1][1].append(position + 1) 
+            # add new doc number/position list to inverted list
+            else:
+                index[word][1].append([delta, [position + 1]])
+                index[word][0] += 1
+        # build the initial list of doc/pos combos, no delta encoding on this iteration
+        else:
+            index[word] = [1, [[doc_number, [position + 1]]]]
+
+    return index
 
 def index_builder():
     """
-    initialise empty index
-    
-    for all urls:
-        get the text body
-        pre-process text body
-        run index extender function
+    return:
+    index in the encoded dictionary form {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
     """
     index = {}
 
     # !!! manually getting some text bodys for testing, update this to url retrieval
-    with open("test_collection.txt", 'r') as f:
+    with open("test_collection_2.txt", 'r') as f:
         article_bodies = f.readlines()
     
+    # extend the index for every document that is added
     for doc_number, body in enumerate(article_bodies):
-        pre_processed_words = body.split(" ") # !!! this pre-processing step needs to be updated accordingly
-        index = index_extender(pre_processed_words, index, doc_number)
+        pre_processed_words = [word.strip('\n') for word in body.split(" ")] # !!! this pre-processing step needs to be updated accordingly
+        index = index_extender(pre_processed_words, index, doc_number + 1)
+    
+    return index
 
-
-def index_writer(inverted_index_dictionary):
+def index_writer(index):
     """
     input params:
     inverted_index_dictionary : dictionary
-        index in the encoded dictionary form {word: [(doc_id_v_byte, position_v_byte)]}
-
-    initiate word2byte hash
-    open index handle
-        for word, list in the index:
-            find the current byte
-            write the k,v to the file
-            find the new byte after writing
-            find the difference between new and old byte
-            build tuple of (current byte, byte difference)
-            store word2byte: {word, (current byte, byte difference)}
+        index in the encoded dictionary form {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
 
     return:
     index file
     hash table word2byte_location
     """
-    return
+    word2bytes = {}
+    with open("index.json", 'w') as f:
+        for word in index:
+            start_byte = f.tell()
 
-def delta_decoder(delta_encoded_inverted_list):
+            # write k,v to file
+            dict_to_write = {word: index[word]}
+            string = json.dumps(dict_to_write)
+            f.write(string)
+            end_byte = f.tell()
+            bytes_to_read = end_byte - start_byte
+            byte_values = (start_byte, bytes_to_read)
+            word2bytes[word] = byte_values
+
+    return word2bytes
+
+def delta_decoder(delta_encoded_inverted_list, word):
     """
     input params:
     v_byte_encoded_inverted_list : dictionary
         one key being the word, and values a list with delta encoded doc_id and decoded positions
 
     return:
-    inverted list in its original format {word: [(doc_id, position)]}
+    inverted list in its original format {word: [document_count, [[doc_number, [positions]]]}
     """
-    return
+    dict_out = {word: {}}
 
-def v_byte_decoder(encoded_inverted_list):
-    """
-    input params:
-    encoded_inverted_list : dictionary
-        one key being the word, and values a list with v-byte encoded doc_id and positions
+    doc_count, doc_numbers = delta_encoded_inverted_list[word]
 
-    return:
-    inverted list in delta encoded format {word: [(doc_id_delta_encoded, position_decoded)]}
-    """
-    return
+    # add the first doc number manually
+    doc_number, positions = doc_numbers[0]
+    dict_out[word][doc_number] = positions
 
-def retrieval(word_list, word2byte):
+    # loop over all but the first doc_numbers, first is not encoded
+    for i in range(1, len(doc_numbers)):
+        doc_number = sum([doc_tuple[0] for doc_tuple in doc_numbers[:i + 1]]) # calculate the doc number for each delta
+        positions = doc_numbers[i][1]
+        dict_out[word][doc_number] = positions
+
+    return dict_out
+
+def retrieval(word_list, word2byte, index_path):
     """
     input params:
     word_list : list
@@ -112,20 +110,33 @@ def retrieval(word_list, word2byte):
     word2byte : dictionary
         dictionary with collection vocabulary as keys and index byte start and size as value
 
-    initialise mini index (this will eventually be returned)
-    sets pointer to file handle
-    for each word in the query: 
-        finds the byte pointer and size
-        retrieve the inverted list
-        v byte decode the list
-        delta decode the list
-        add decoded list to mini index
-
     return:
-    mini index in original format: dictionary of list of tuples {word: [(doc_id, position)]}
+    mini index in original format: dictionary of list of tuples {word: [document_count, [ [doc_number, [positions]], [doc_number, [positions]], ... ]}
     """
+    mini_index = {}
+    
+    with open(index_path, 'r') as f:
+        for word in word_list:
+            try: # if query word is in our vocabulary
+                start_byte = word2byte[word][0]
+                bytes_to_read = word2byte[word][1]
 
-    return
+                # find the bytes where we need to start reading
+                f.seek(start_byte)
+                inverted_list = f.read(bytes_to_read)
+
+                # add inverted list to the index we want to retrieve
+                inverted_list_dict = json.loads(inverted_list)
+                decoded_inverted_list = delta_decoder(inverted_list_dict, word)
+                mini_index = {**mini_index, **decoded_inverted_list}
+            except:
+                pass # if query word is not in our vocabulary
+    
+    return mini_index
 
 if __name__ == "__main__":
-    index_builder()
+    INDEX_PATH = "index.json"
+
+    index = index_builder()
+    word2byte = index_writer(index)
+    retrieval(['hello', 'edinburgh'], word2byte, INDEX_PATH)
