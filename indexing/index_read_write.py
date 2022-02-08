@@ -1,4 +1,138 @@
 import json
+import re
+
+import xml.etree.ElementTree as ET
+
+from nltk.stem.porter import *
+from newspaper import Article
+
+class Preprocessing:
+    def __init__(self):
+        self.stemmer = PorterStemmer()
+        stopwords = read_text_file("englishST.txt")
+        self.stopwords = self.preprocess_stopwords(stopwords)
+
+    def remove_stopwords(self, file):
+        stopwords_set = set(self.stopwords)
+        file_without_stopwords = [x for x in file if x not in stopwords_set]
+        return file_without_stopwords
+
+    def preprocess_stopwords(self, stopwords):
+        stopwords = [x.rstrip() for x in stopwords]  # remove trailing space
+        stopwords = [x.lower() for x in stopwords]  # lowercase
+        return stopwords
+
+    def preprocess_query(self, query):
+        query = query.split(" ")  # split on blank space to separate terms
+        query = [self.stemmer.stem(term) for term in query]  # stem every term in the query
+        query = self.remove_stopwords(query)
+        return query
+
+    def tokenize_text_file(self, text_file):
+        tokenized_file = []
+        if isinstance(text_file, str):  # Checking whether input is only a string or a text-file
+            text_file = re.findall(r'[¢£€\w]+', text_file)
+            return text_file
+        for i in range(len(text_file)):
+            line = text_file[i]
+            line = re.findall(r'[\w]+', line)
+            tokenized_file.append(line)
+        return tokenized_file
+
+    def case_folding(self, tokenized_file):
+        if isinstance(tokenized_file[0], list):  # Checking whether input is a list or a string as this influences the
+            # list comprehension code format
+            case_folded_file_comprehension = [x.lower() for line in tokenized_file for x in line]
+            return case_folded_file_comprehension
+        case_folded_file_comprehension = [x.lower() for x in tokenized_file]
+        return case_folded_file_comprehension
+
+    def apply_stemming(self, file):
+        file = [self.stemmer.stem(x) for x in file]
+        return file
+
+    def apply_preprocessing(self, file):
+        """
+        Function to process text in a more suitable format
+        Applies tokenization, case-folding, stopwords removal and stemming
+        """
+        file = self.tokenize_text_file(file)
+        file = self.case_folding(file)
+        file = self.remove_stopwords(file)
+        file = self.apply_stemming(file)
+        return file
+
+def read_text_file(filepath):
+    with open(filepath) as f:
+        lines = f.readlines()
+        return lines
+
+def nasdaq_processor(file_name):
+    nasdaq_companes=[]
+    stop_words_companies=['corp.','corp','inc','inc.','ltd.','ltd','nasdaq','stock','test','shares','N.A.']
+    substrings=['.com', ',']
+    holder=[]
+    
+    # Build list from text file
+    with open(file_name) as f:
+        next(f)
+        for line in f:
+            company=line.split('|')[1].split('-')[0].strip()
+            nasdaq_companes.append(company)
+    
+    
+    # Remove stop words and substrings
+    for comp in nasdaq_companes:
+        split_companies=comp.split(" ")
+
+        for i in split_companies:
+
+            # Remove .com,',', etc.
+            for substring in substrings:
+                if substring in i:
+                    i=i.replace(substring,'')
+
+            # Dont include stop words   
+            if i.lower() not in (string.lower() for string in stop_words_companies):
+                holder.append(i)
+
+    # Remove single elements
+    for comp in holder:
+        if len(comp)<=1:
+            try:
+                while True:
+                    holder.remove(comp)
+            except ValueError:
+                pass
+    
+    # Remove duplicates
+    holder = list(dict.fromkeys(holder))
+    
+    return (holder)
+
+def extract_content(url):
+
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+
+        # Add to title colum
+        content= article.text
+        
+        return content
+
+    except:
+        return False
+
+def check_nasdaq(nasdaq_list, text_body):
+    """Check if text body contains at least one mention of nasdaq companies"""
+
+    for word in nasdaq_list:
+        if word in text_body:
+            return True
+    return False
+
 
 def index_extender(text_body, index, doc_number):
     """
@@ -9,7 +143,8 @@ def index_extender(text_body, index, doc_number):
         the current index with lists delta and v-byte encoded
 
     return:
-    extended index in the following format: {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
+    extended index in the following format: 
+                        {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
     """
 
     for position, word in enumerate(text_body):
@@ -33,29 +168,51 @@ def index_extender(text_body, index, doc_number):
 
     return index
 
-def index_builder():
+def add_row_to_db(doc_id, title, url, date, body):
+    """adds one article to the database"""
+    return
+    
+def index_builder(url_file, nasdaq_file):
     """
     return:
-    index in the encoded dictionary form {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
+    index in the encoded dictionary form 
+                        {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
     """
-    index = {}
+    inverted_index = {}
+    nasdaq_list = nasdaq_processor(nasdaq_file)
 
-    # !!! manually getting some text bodys for testing, update this to url retrieval
-    with open("test_collection_2.txt", 'r') as f:
-        article_bodies = f.readlines()
-    
-    # extend the index for every document that is added
-    for doc_number, body in enumerate(article_bodies):
-        pre_processed_words = [word.strip('\n') for word in body.split(" ")] # !!! this pre-processing step needs to be updated accordingly
-        index = index_extender(pre_processed_words, index, doc_number + 1)
-    
-    return index
+    # @ part 4 of word doc
+    # input = csv with doc_id, title, url, date
+    with open(url_file, 'r') as f:
+        next(f)
+        lines = f.readlines()
+
+    for line in lines:
+        index, doc_id, title, url, date = line.split('\t')
+
+        # get article body with library from url
+        url_content = extract_content(url)
+
+        if url_content != False:
+            nasdaq_response = check_nasdaq(nasdaq_list, url_content)
+            if nasdaq_response:
+
+                # TODO
+                # write to database (doc_id, title, url, date, body)
+
+                preprocessing = Preprocessing()
+                pre_processed_article = preprocessing.apply_preprocessing(url_content)
+
+                inverted_index = index_extender(pre_processed_article, inverted_index, int(doc_id))
+
+    return inverted_index
 
 def index_writer(index):
     """
     input params:
     inverted_index_dictionary : dictionary
-        index in the encoded dictionary form {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
+        index in the encoded dictionary form 
+                                {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
 
     return:
     index file
@@ -100,7 +257,6 @@ def delta_decoder(delta_encoded_inverted_list, word):
         doc_number = sum([doc_tuple[0] for doc_tuple in doc_numbers[:i + 1]]) # calculate the doc number for each delta
         positions = doc_numbers[i][1]
         dict_out[word][1][doc_number] = positions
-    print(dict_out)
     return dict_out
 
 def retrieval(word_list, word2byte, index_path):
@@ -112,7 +268,8 @@ def retrieval(word_list, word2byte, index_path):
         dictionary with collection vocabulary as keys and index byte start and size as value
 
     return:
-    mini index in original format: dictionary of list of tuples {word: [document_count, [ [doc_number, [positions]], [doc_number, [positions]], ... ]}
+    mini index in original format, only containing those inverted lists that are relevant to the query: 
+                        {word: [document_count, [ [doc_number, [positions]], [doc_number, [positions]], ... ]}
     """
     mini_index = {}
     
@@ -135,9 +292,19 @@ def retrieval(word_list, word2byte, index_path):
     
     return mini_index
 
-if __name__ == "__main__":
-    INDEX_PATH = "index.json"
+def word2byte_writer(word2byte_dict):
+    with open("word2byte.json", 'w') as f:
+        json.dump(word2byte_dict, f)
 
-    index = index_builder()
-    word2byte = index_writer(index)
-    retrieval(['hello', 'edinburgh', 'hhh'], word2byte, INDEX_PATH)
+if __name__ == "__main__":
+    URL_FILE = "5_article_test.tsv"
+    NASDAQ_FILE = "nasdaq_companies.txt"
+
+    # this function builds the inverted index in dictionary form
+    inverted_index_final = index_builder(URL_FILE, NASDAQ_FILE)
+
+    # this function writes the index to memory and returns the byte offset hash
+    word2byte = index_writer(inverted_index_final)
+
+    # this function writes the byte offset hash to disk
+    word2byte_writer(word2byte)
