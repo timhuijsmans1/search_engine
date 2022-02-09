@@ -1,9 +1,6 @@
 import re
 from typing import Union, Any
 
-from preprocessing import Preprocessing
-
-
 def read_text_file(filepath):
     with open(filepath) as f:
         lines = f.readlines()
@@ -88,3 +85,29 @@ def create_doc_dictionary(element_tree, preprocessor):
     for key, value in document_dict.items():
         document_dict[key] = preprocessor.apply_preprocessing(document_dict[key])
     return document_dict
+
+
+#### Functions used for lambdarank.py #####
+
+def extract_qid(qid_str):
+    """
+    Function to extract just the query id - the format of the entry is "qid:1" for example
+    """
+    return qid_str[4:]
+
+
+def extract_val(feat):
+    """
+    Function to only extract the values for each feature - again based on hwo the entries are in the given data file
+    """
+    return feat.split(':')[1]
+
+
+def df_transform(df):
+    """
+    Function to apply the above 2 transformations and also remove row 138 - nan entries
+    """
+    df[1] = df[1].apply(extract_qid)
+    df[df.columns[2:-1]] = df[df.columns[2:-1]].applymap(extract_val)
+    df = df.drop(138, axis=1)
+    return df
