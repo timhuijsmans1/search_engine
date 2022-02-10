@@ -13,8 +13,14 @@ if __name__ == "__main__":
     INDEX_OUTPUT = 'index.json'
     INDEX_HASH_OUTPUT = 'word2byte.json'
 
+    DATABASE_CONFIG_PATH = 'database_population/db.ini'
+    DATABASE_CERT_PATH = 'database_population/certs'
+
     # this function builds the inverted index in dictionary form
-    inverted_index_final = index_builder(CONTENT_FILE, STOP_WORD_FILE_PATH)
+    inverted_index_final = index_builder(CONTENT_FILE, 
+                                        STOP_WORD_FILE_PATH, 
+                                        DATABASE_CONFIG_PATH, 
+                                        DATABASE_CERT_PATH)
     
 
     # this function writes the index to memory and returns the byte offset hash
