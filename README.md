@@ -3,6 +3,8 @@
 ### indexing
 To run the indexing script, the database config files and certificates need to be added. These have been removed for security purpose.
 
+### Before you can start the indexing, make sure the database is empty. This can be done by running db_nuke.py from ```indexing/database_population```. It will prompt a warning, which can be cleared by typing the table name (ArticleData) and pressing enter. 
+
 1. The certificates need to be added in a folder called ```certs```. The folder needs to be in the following path:
 
 ```indexing/database_population/certs```
