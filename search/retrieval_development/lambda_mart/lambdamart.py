@@ -55,7 +55,7 @@ model_params = {'objective': 'rank:pairwise', 'learning_rate': 0.1, 'gama': 1.0,
                 'max_depth': 4, 'n_estimators': 10,
                 'eval_metric': ['ndcg@1', 'ndcg@5', 'ndcg@10', 'ndcg@20', 'ndcg@50', 'ndcg@200']}
 
-num_boost_round = 100
+num_boost_round = 20
 evallist = [(train_data, 'train'), (test_data, 'test')]
 
 ltr_model = xgb.train(model_params, train_data, num_boost_round, evallist)
@@ -69,6 +69,12 @@ pred_df.to_csv(
     sep=" ",
     index=None)
 
-plt.figure(figsize=(20, 20))
-xgb.plot_importance(ltr_model, height=16)
+fig, ax = plt.subplots(figsize=(15, 15))
+xgb.plot_importance(ltr_model, ax=ax)
+plt.title('XGBoost feature importance', fontsize=22)
+plt.tight_layout()
+plt.xlabel("F-Score", fontsize=20)
+plt.ylabel("Features", fontsize=20)
+plt.xticks(fontsize=19)
+plt.yticks(fontsize=19)
 plt.show()
