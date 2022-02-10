@@ -1,6 +1,8 @@
 import pandas as pd
 import xgboost as xgb
 from datetime import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 def get_D_matrix(df):
@@ -32,6 +34,8 @@ def get_D_matrix(df):
     return df_DMatrix
 
 
+sns.set()
+
 # Reading the path as 'data/train.pkl' did not work (not found) but the absolute path seems to work
 
 train_df = pd.read_pickle(
@@ -42,19 +46,29 @@ test_df = pd.read_pickle(
 train_data = get_D_matrix(train_df)
 test_data = get_D_matrix(test_df)
 
-#### Using LambdaMart - combines LambdaRank and MART (Multiple Additive Regression Trees)
-#### On experimental data sets, LambdaMART has shown better results than LambdaRank and the original RankNet
-#### https://medium.com/@nikhilbd/intuitive-explanation-of-learning-to-rank-and-ranknet-lambdarank-and-lambdamart-fe1e17fac418
+# ### Using LambdaMart - combines LambdaRank and MART (Multiple Additive Regression Trees) ### On experimental data
+# sets, LambdaMART has shown better results than LambdaRank and the original RankNet ###
+# https://medium.com/@nikhilbd/intuitive-explanation-of-learning-to-rank-and-ranknet-lambdarank-and-lambdamart
+# -fe1e17fac418
 
-params_lm6 = [('objective', 'rank:ndcg'),  # Use LambdaMART to perform list-wise ranking where NDCG is maximized
-              ('max_depth', 6), # Maximum depth of the tree - the higher the more likely to overfit
-              ('eta', 0.1),   # Step size shrinkage used in update to prevent overfitting
-              ('num_boost_round', 4),  # number of trees to build /
-              ('seed', 404)]  # seed for reproducibility
+model_params = {'objective': 'rank:pairwise', 'learning_rate': 0.1, 'gama': 1.0, 'min_child_weight': 0.1,
+                'max_depth': 4, 'n_estimators': 10,
+                'eval_metric': ['ndcg@1', 'ndcg@5', 'ndcg@10', 'ndcg@20', 'ndcg@50', 'ndcg@200']}
 
-model_lm6 = xgb.train(params_lm6, train_data)
-pred_lm6 = model_lm6.predict(test_data)
+num_boost_round = 100
+evallist = [(train_data, 'train'), (test_data, 'test')]
 
-pd.DataFrame(pred_lm6).to_csv("/Users/vladmatei/PycharmProjects/TextTechnologiesDS/Search_engine/search/retrieval_development/data/pred_lm6.txt",
-                              header=None,
-                              sep=" ")
+ltr_model = xgb.train(model_params, train_data, num_boost_round, evallist)
+model_pred = ltr_model.predict(test_data)
+
+pred_df = pd.DataFrame(model_pred)
+
+pred_df.to_csv(
+    "/Users/vladmatei/PycharmProjects/TextTechnologiesDS/Search_engine/search/retrieval_development/data/pred_lm6.txt",
+    header=None,
+    sep=" ",
+    index=None)
+
+plt.figure(figsize=(20, 20))
+xgb.plot_importance(ltr_model, height=16)
+plt.show()
