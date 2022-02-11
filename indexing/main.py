@@ -12,6 +12,7 @@ if __name__ == "__main__":
     OUTPUT_LOCATION = 'output/index_and_index_hash'
     INDEX_OUTPUT = 'index.json'
     INDEX_HASH_OUTPUT = 'word2byte.json'
+    DICTIONARY_SIZE_OUTPUT = 'dict_size.txt'
 
     DATABASE_CONFIG_PATH = 'database_population/db.ini'
     DATABASE_CERT_PATH = 'database_population/certs'
@@ -20,7 +21,8 @@ if __name__ == "__main__":
     inverted_index_final = index_builder(CONTENT_FILE, 
                                         STOP_WORD_FILE_PATH, 
                                         DATABASE_CONFIG_PATH, 
-                                        DATABASE_CERT_PATH)
+                                        DATABASE_CERT_PATH,
+                                        os.path.join(OUTPUT_LOCATION, DICTIONARY_SIZE_OUTPUT))
     
 
     # this function writes the index to memory and returns the byte offset hash

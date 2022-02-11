@@ -1,3 +1,5 @@
+import sys
+
 from datetime import datetime
 
 from database_population.db_connection import connect
@@ -38,7 +40,7 @@ def index_extender(text_body, index, doc_number):
 
     return index
 
-def index_builder(content_file, stop_word_file_path, database_config_path, database_cert_path):
+def index_builder(content_file, stop_word_file_path, database_config_path, database_cert_path, dict_size_path):
     """
     return:
     index in the encoded dictionary form 
@@ -49,7 +51,7 @@ def index_builder(content_file, stop_word_file_path, database_config_path, datab
     connection, cursor = connect(database_config_path, database_cert_path)
 
     # @ part 4 of word doc
-    # input = csv with doc_id, title, url, date
+    # input = tsv with doc_id \t title \t body \t url \t date
     with open(content_file, 'r') as f:
         while True:
             line = f.readline().strip('\n')
@@ -64,5 +66,8 @@ def index_builder(content_file, stop_word_file_path, database_config_path, datab
             pre_processed_article = preprocessing.apply_preprocessing(body)
 
             inverted_index = index_extender(pre_processed_article, inverted_index, int(doc_id))
+
+    with open(dict_size_path, 'w') as f:
+        f.write(str(sys.getsizeof(inverted_index)))
 
     return inverted_index
