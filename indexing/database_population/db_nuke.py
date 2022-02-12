@@ -3,10 +3,7 @@ import configparser
 import os
 
 answer = input("WARNING---this will delete the entire table---WARNING\ntype the table name to continue: ")
-table_name = 'ArticleData'
-
-if answer == table_name:
-
+try:
     config = configparser.ConfigParser()
     config.read('db.ini')
 
@@ -24,11 +21,16 @@ if answer == table_name:
 
     cursor = connection.cursor()
 
-    cursor.execute(f'DELETE FROM {table_name};')
+    cursor.execute(f'DELETE FROM {answer};')
+    cursor.execute(f"SELECT * FROM {answer}")
+    output = cursor.fetchall()
     connection.commit()
     cursor.close()
 
-    print('Truncation successful')
-else:
-    pass
+    if len(output) == 0:
+        print('Truncation successful')
+    else:
+        print('Truncation failed, try again')
+except:
+    print(f'Table {answer} does not exist. Re-run the script and try again.')
 

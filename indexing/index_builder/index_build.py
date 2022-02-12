@@ -1,4 +1,6 @@
 import sys
+import json
+import ast
 
 from datetime import datetime
 
@@ -21,7 +23,7 @@ def index_extender(text_body, index, doc_number):
 
     for position, word in enumerate(text_body):
 
-        if word in index:
+        if index.get(word):
 
             # sums deltas to find the most recently added doc number of the current word.
             last_doc_number = sum([doc_tuple[0] for doc_tuple in index[word][1]])
@@ -40,34 +42,78 @@ def index_extender(text_body, index, doc_number):
 
     return index
 
-def index_builder(content_file, stop_word_file_path, database_config_path, database_cert_path, dict_size_path):
+def index_builder(content_file, 
+                 stop_word_file_path,
+                 database_config_path,
+                 database_cert_path,
+                 dict_size_path,
+                 link_dict_path,
+                 doc_size_path):
     """
     return:
     index in the encoded dictionary form 
                         {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
     """
     inverted_index = {}
+    links_dict = {}
+    sizes_dict = {}
 
     connection, cursor = connect(database_config_path, database_cert_path)
+
+    doc_id = 1
 
     # @ part 4 of word doc
     # input = tsv with doc_id \t title \t body \t url \t date
     with open(content_file, 'r') as f:
-        while True:
+        next(f) # skip the header, delete for a file without header
+        while doc_id < 10000:
+            print(doc_id)
+
             line = f.readline().strip('\n')
             if not line:
                 break
+            
+            # extract line info
+            title, url, publish_date, body, content_length, links = line.split('\t')
+            full_text = title + ' ' +  body
 
-            doc_id, title, body, url, publish_date = line.split('\t')
-            publish_date = datetime.strptime(publish_date, '%Y-%m-%d')
-            add_row(int(doc_id), title, body, url, publish_date, cursor, connection)
+            # whenever the date is provided in the wrong format, skip the iteration
+            try:
+                # prepare data types for adding to db
+                publish_date = datetime.strptime(publish_date.strip(' 00:00:00'), '%Y-%m-%d')
+                title = title.replace('\'', '\'\'')
+            except:
+                print('Skipped a document')
+                continue
+            
+            # add row to the database with the new info
+            add_row(doc_id, title, url, publish_date, cursor, connection)
 
             preprocessing = Preprocessing(stop_word_file_path)
-            pre_processed_article = preprocessing.apply_preprocessing(body)
+            pre_processed_article = preprocessing.apply_preprocessing(full_text)
 
+            # update size_dict
+            content_length = len(pre_processed_article)
+            sizes_dict[str(doc_id)] = content_length
+
+            # update links dict
+            if len(links) > 0:
+                links = [link.strip() for link in ast.literal_eval(links)]
+                links_dict[str(doc_id)] = links
+
+            # update index
             inverted_index = index_extender(pre_processed_article, inverted_index, int(doc_id))
+            doc_id += 1
 
     with open(dict_size_path, 'w') as f:
-        f.write(str(sys.getsizeof(inverted_index)))
+        f.write(f'size of inverted index dict: {str(sys.getsizeof(inverted_index))} bytes\n')
+        f.write(f'size of content length dict: {str(sys.getsizeof(sizes_dict))} bytes\n')
+        f.write(f'size of link dict: {str(sys.getsizeof(links_dict))} bytes')
+
+    with open(link_dict_path, 'w') as f:
+        json.dump(links_dict, f)
+
+    with open(doc_size_path, 'w') as f:
+        json.dump(sizes_dict, f)
 
     return inverted_index
