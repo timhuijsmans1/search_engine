@@ -1,5 +1,6 @@
-1	article 1	hello world	www.google.com	2000-02-01
-2	article 2	hello world	www.google.com	2000-02-01
-3	article 3	hello edinburgh	www.google.com	2000-02-01
-4	article 4	hello edinburgh	www.google.com	2000-02-01
-5	article 5	helloo	www.google.com	2000-02-01
+Title	DocumentIdentifier	DATE	Content	Content_len	Links
+Article1	www.google.com	2022-02-05	Hello world	2	
+Article2	www.google.com	2022-02-05	Hello germany	2	
+Article3	www.google.com	2022-02-05	Hello ams	2	
+Article4	www.google.com	2022-02-05	Hello germany	2	
+Article5	www.google.com	2022-02-05	Hello china	2	

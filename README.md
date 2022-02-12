@@ -1,7 +1,7 @@
 # search_engine
 
 ### indexing
-To run the indexing script, the database config files and certificates need to be added. These have been removed for security purpose.
+To run the indexing script, the database config files and certificates need to be added. These have been removed for security purpose. The steps to do so are explained below. Once this is done, you can run the script through ```main.py```.
 
 ### Warning!
 #### Before you can start the indexing, make sure the database is empty. This can be done by running db_nuke.py from ```indexing/database_population```. It will prompt a warning, which can be cleared by typing the table name (ArticleData) and pressing enter. 
@@ -14,14 +14,14 @@ To run the indexing script, the database config files and certificates need to b
 
 ```indexing/database_population/db.ini```
 
-3. The database only works with ssl certificates, ad the layour of the db.ini file is the following:
+3. The database only works with ssl certificates, ad the layour of the db.ini file is the following (fill of the parts within the {}-brackets, and remove the brackets.):
 
 ```
 [postgres]
-host = [server public IP]
-port = [sever port]
+host = {server public IP}
+port = {sever port}
 user = postgres
-password = [instance password]
+password = {instance password}
 database = postgres
 sslmode = verify-ca
 sslrootcert = server-ca.pem

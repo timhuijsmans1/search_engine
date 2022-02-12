@@ -64,6 +64,7 @@ def results(request):
 
         # query DB with docnumbers
         results = [Article.objects.get(document_id=doc) for doc in ranked_docs]
+        
         print(results[1].publication_date.strftime('%m/%d/%Y'))
         context = {
             'results': results,
