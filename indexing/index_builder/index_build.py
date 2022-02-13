@@ -66,7 +66,7 @@ def index_builder(content_file,
     # input = tsv with doc_id \t title \t body \t url \t date
     with open(content_file, 'r') as f:
         next(f) # skip the header, delete for a file without header
-        while doc_id < 10000:
+        while True:
             print(doc_id)
 
             line = f.readline().strip('\n')
@@ -76,6 +76,10 @@ def index_builder(content_file,
             # extract line info
             title, url, publish_date, body, content_length, links = line.split('\t')
             full_text = title + ' ' +  body
+
+            # skip articles that can not be loaded into the db
+            if len(title) >= 1000 or len(url) >= 1000:
+                continue
 
             # whenever the date is provided in the wrong format, skip the iteration
             try:
