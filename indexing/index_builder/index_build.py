@@ -35,6 +35,7 @@ def index_extender(text_body, index, doc_number):
             # add new doc number/position list to inverted list
             else:
                 index[word][1].append([delta, [position + 1]])
+                # increment document count of word
                 index[word][0] += 1
         # build the initial list of doc/pos combos, no delta encoding on this iteration
         else:
