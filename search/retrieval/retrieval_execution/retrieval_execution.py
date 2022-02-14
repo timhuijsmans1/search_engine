@@ -85,10 +85,9 @@ class RetrievalExecution:
         # index. The format of the mini_index is consistent with previous format of the entire index:
         # mini_index[word] = [number_of_appearances, {document1: [position1, position2, ...], document2: [position1, position2, ...]}]
 
-        vsm.ranked_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes)
-
+        ranked_docs = vsm.ranked_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes)
         # this function should return a list of the ranked documents
-        return
+        return ranked_docs
     
     def execute_ranking(self, used_model):
 
@@ -107,4 +106,4 @@ class RetrievalExecution:
         some_doc_numbers = list(self.mini_index[first_word_in_index][1].keys())
         some_doc_ints = [int(doc_id) for doc_id in some_doc_numbers][:10]
 
-        return some_doc_ints
+        return ranked_doc_numbers
