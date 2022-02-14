@@ -29,10 +29,21 @@ def get_D_matrix(df):
     df_DMatrix = xgb.DMatrix(X, label=y)  # Create the DMatrix which is pretty much a dataframe but optimised
     grp = grp.map(pd.to_numeric)
     df_DMatrix.set_group(grp_info_counts)
-    print("Number of rows y label = " + str(len(grp)))
-    print("Shape of X = " + str(len(X.shape)))
+    print("Number of rows y training label = " + str(len(grp)))
+    print("Shape of X = " + str(X.shape))
     return df_DMatrix
 
+
+def plot_feature_importance(xgb):
+    fig, ax = plt.subplots(figsize=(15, 15))
+    xgb.plot_importance(ltr_model, ax=ax)
+    plt.title('XGBoost feature importance', fontsize=22)
+    plt.tight_layout()
+    plt.xlabel("F-Score", fontsize=20)
+    plt.ylabel("Features", fontsize=20)
+    plt.xticks(fontsize=19)
+    plt.yticks(fontsize=19)
+    plt.show()
 
 sns.set()
 
@@ -57,24 +68,15 @@ model_params = {'objective': 'rank:pairwise', 'learning_rate': 0.1, 'gama': 1.0,
 
 num_boost_round = 20
 evallist = [(train_data, 'train'), (test_data, 'test')]
-
 ltr_model = xgb.train(model_params, train_data, num_boost_round, evallist)
 model_pred = ltr_model.predict(test_data)
-
 pred_df = pd.DataFrame(model_pred)
-
 pred_df.to_csv(
     "/Users/vladmatei/PycharmProjects/TextTechnologiesDS/Search_engine/search/retrieval_development/data/pred_lm6.txt",
     header=None,
     sep=" ",
     index=None)
 
-fig, ax = plt.subplots(figsize=(15, 15))
-xgb.plot_importance(ltr_model, ax=ax)
-plt.title('XGBoost feature importance', fontsize=22)
-plt.tight_layout()
-plt.xlabel("F-Score", fontsize=20)
-plt.ylabel("Features", fontsize=20)
-plt.xticks(fontsize=19)
-plt.yticks(fontsize=19)
-plt.show()
+plot_feature_importance(xgb=xgb)
+
+
