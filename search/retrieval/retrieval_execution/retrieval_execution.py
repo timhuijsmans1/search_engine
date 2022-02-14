@@ -1,11 +1,15 @@
 import json
 
-from retrieval.retrieval_helpers.index_loader import load_mini_index
-
-from retrieval.retrieval_helpers.preprocessing import Preprocessing
-
-from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
-from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
+# from retrieval.retrieval_helpers.index_loader import load_mini_index
+# from retrieval.retrieval_helpers.preprocessing import Preprocessing
+### imports working for Vlad's machine
+from search.retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
+from search.retrieval.retrieval_helpers.preprocessing import Preprocessing
+from search.retrieval.retrieval_helpers.index_loader import load_mini_index
+from search.retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
+###
+# from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
+# from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 
 
 class RetrievalExecution:
@@ -71,9 +75,13 @@ class RetrievalExecution:
         #TODO VLAD
         # implement the vsm ranking. At this point, you can use all the initialized data build above.
 
+        # We need N, the total size of our collection
+
         # The mini index is an index only consisting of those words from the query that appeared in the 
         # index. The format of the mini_index is consistent with previous format of the entire index:
         # mini_index[word] = [number_of_appearances, {document1: [position1, position2, ...], document2: [position1, position2, ...]}]
+
+        vsm.ranked_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes)
 
         # this function should return a list of the ranked documents
         return
