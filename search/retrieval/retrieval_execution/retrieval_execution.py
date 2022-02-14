@@ -101,6 +101,6 @@ class RetrievalExecution:
         # hard code just a list of max 10 document numbers
         first_word_in_index = list(self.mini_index.keys())[0]
         some_doc_numbers = list(self.mini_index[first_word_in_index][1].keys())
-        some_doc_ints = [int(doc_id) for doc_id in some_doc_numbers]
+        some_doc_ints = [int(doc_id) for doc_id in some_doc_numbers][:10]
 
         return some_doc_ints
