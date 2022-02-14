@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 
 from retrieval.models import Article
+from retrieval.retrieval_execution.retrieval_execution import RetrievalExecution
+from retrieval.paths import *
 
 from datetime import datetime
 
@@ -16,17 +18,20 @@ def index(request):
 
 def results(request):
     form_data = value=request.GET
+    
+    query = form_data.get('query')
 
     # validate category and query input, redirect back to home otherwise
     if form_data.get('category') == None:
         return redirect('retrieval:index')
-    if form_data.get('query') == None:
+    if query == None:
         return redirect('retrieval:index')
 
     # validate date in advanced search
     date_start = form_data.get('date_start')
     date_end = form_data.get('date_end')
 
+    # if advanced data search is not switched on, this will not be executed
     if date_start and date_end:
         now = datetime.now()
 
@@ -56,20 +61,29 @@ def results(request):
         }
 
     else:
-        # TODO
-        # standard: retrieve doc numbers, query database for doc numbers only
-
-        # IR retrieval and ranking for doc numbers
-        ranked_docs = [4,5,1]
-
-        # query DB with docnumbers
-        results = [Article.objects.get(document_id=doc) for doc in ranked_docs]
+        retrieval_execution = RetrievalExecution(
+            query,
+            INDEX_PATH,
+            WORD2BYTE_PATH,
+            DOC_SIZE_PATH,
+            LINKS_PATH,
+            102485
+        ) # doc_number is hard coded because counting rows in 
+          # table is slow. Need to find an alternative for live indexing
         
-        print(results[1].publication_date.strftime('%m/%d/%Y'))
-        context = {
-            'results': results,
-        }
-    return render(request, 'retrieval/results.html', context)
+        ranked_docs = retrieval_execution.execute_ranking('vsm')
+
+        print("talking to database")
+        if ranked_docs:    
+            # query DB with docnumbers
+            results = [Article.objects.get(document_id=doc) for doc in ranked_docs]
+        
+            context = {
+                'results': results,
+            }
+            return render(request, 'retrieval/results.html', context)
+        else:
+            return redirect('retrieval:index')
 
 def article_detail(request, document_id):
     article = get_object_or_404(Article, document_id=document_id)
