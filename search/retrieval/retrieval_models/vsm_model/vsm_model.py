@@ -6,11 +6,12 @@ import numpy as np
 
 
 ### Import working locally on Vlad's machine
-from search.retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
-from search.retrieval.retrieval_helpers.preprocessing import Preprocessing
+# from search.retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
+# from search.retrieval.retrieval_helpers.preprocessing import Preprocessing
 
 ###
-# from retrieval.retrieval_helpers.preprocessing import Preprocessing
+from retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
+from retrieval.retrieval_helpers.preprocessing import Preprocessing
 
 class Vsm_model:
 

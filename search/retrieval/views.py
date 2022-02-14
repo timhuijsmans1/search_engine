@@ -67,7 +67,7 @@ def results(request):
             WORD2BYTE_PATH,
             DOC_SIZE_PATH,
             LINKS_PATH,
-            9999
+            102485
         ) # doc_number is hard coded because counting rows in 
           # table is slow. Need to find an alternative for live indexing
         

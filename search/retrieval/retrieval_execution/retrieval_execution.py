@@ -3,14 +3,18 @@ import json
 # from retrieval.retrieval_helpers.index_loader import load_mini_index
 # from retrieval.retrieval_helpers.preprocessing import Preprocessing
 ### imports working for Vlad's machine
-from search.retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
-from search.retrieval.retrieval_helpers.preprocessing import Preprocessing
-from search.retrieval.retrieval_helpers.index_loader import load_mini_index
-from search.retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
+# from search.retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
+# from search.retrieval.retrieval_helpers.preprocessing import Preprocessing
+# from search.retrieval.retrieval_helpers.index_loader import load_mini_index
+# from search.retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 ###
 # from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 # from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 
+from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
+from retrieval.retrieval_helpers.preprocessing import Preprocessing
+from retrieval.retrieval_helpers.index_loader import load_mini_index
+from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 
 class RetrievalExecution:
 
