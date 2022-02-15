@@ -29,6 +29,10 @@ class RetrievalExecution:
         ):
 
         # pre-process query
+        if '"' in query:
+            self.phrase_bool = True
+        else:
+            self.phrase_bool = False
         preprocessing = Preprocessing()
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
         
@@ -71,8 +75,16 @@ class RetrievalExecution:
         # index. The format of the mini_index is consistent with previous format of the entire index:
         # mini_index[word] = [number_of_appearances, {document1: [position1, position2, ...], document2: [position1, position2, ...]}]
 
+        self.l_tot = 0
+        for d in self.doc_sizes.values():
+            self.l_tot += int(float(d))
+
+        if self.phrase_bool:
+            ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
+        else:
+            ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
         # this function should return a list of the ranked documents
-        return
+        return ranked_docs
 
     def vsm_ranking(self):
         vsm = Vsm_model()

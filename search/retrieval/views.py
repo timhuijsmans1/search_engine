@@ -71,7 +71,7 @@ def results(request):
         ) # doc_number is hard coded because counting rows in 
           # table is slow. Need to find an alternative for live indexing
         
-        ranked_docs = retrieval_execution.execute_ranking('vsm')
+        ranked_docs = retrieval_execution.execute_ranking('bm25')
 
         print("talking to database")
         if ranked_docs:    
