@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import json
 from collections import defaultdict, OrderedDict
+import time
 
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import helper_example # this is the way you can import supporting functions from this path
@@ -88,10 +89,6 @@ class Bm25_model:
 
         term_inverted_indexes = {}
         documents_appearing_in = {}
-
-        l_tot = 0
-        for d in doc_size.values():
-            l_tot += int(float(d))
 
         for term in query:
             term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
