@@ -1,4 +1,5 @@
 import json
+import numpy as np
 
 # from retrieval.retrieval_helpers.index_loader import load_mini_index
 # from retrieval.retrieval_helpers.preprocessing import Preprocessing
@@ -75,9 +76,9 @@ class RetrievalExecution:
         # index. The format of the mini_index is consistent with previous format of the entire index:
         # mini_index[word] = [number_of_appearances, {document1: [position1, position2, ...], document2: [position1, position2, ...]}]
 
-        self.l_tot = 0
-        for d in self.doc_sizes.values():
-            self.l_tot += int(float(d))
+        self.l_tot = np.sum(np.array(self.doc_sizes.values()))
+        # for d in self.doc_sizes.values():
+        #     self.l_tot += int(float(d))
 
         if self.phrase_bool:
             ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
