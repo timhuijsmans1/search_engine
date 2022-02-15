@@ -14,40 +14,36 @@ class Bm25_model:
 
 
     def compute_weight_term_document(self, term, document, positional_inverted_index, documents_appearing_in, N,
-                                     doc_size):
+                                     doc_size, len_tot):
 
-        l_tot = 0
+        l_tot = len_tot
         l_avg = 0
         k = 1.5
 
-        for d in doc_size.values():
-            l_tot += int(float(d))
 
         l_avg = l_tot / N
 
-        if document not in positional_inverted_index[term].keys():
+        if document not in positional_inverted_index[term][1].keys():
             w_t_d = 0
         else:
-            tf = len(positional_inverted_index[term][document])
+            tf = len(positional_inverted_index[term][1][document])
 
             df = len(documents_appearing_in[term])
             idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
-            d = doc_size[document] / l_avg
+            d = doc_size[str(document)] / l_avg
             w_t_d = idf * (tf / ((k * d) + tf + 0.5))
+
         return w_t_d
 
     def compute_weight_phrase_document(self, document, tf, df, N,
-                                     doc_size):
-        l_tot = 0
+                                     doc_size, len_tot):
+        l_tot = len_tot
         l_avg = 0
         k = 1.5
 
-        for d in doc_size.values():
-            l_tot += int(float(d))
-
         l_avg = l_tot / N
         idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
-        d = doc_size[document] / l_avg
+        d = doc_size[str(document)] / l_avg
         w_t_d = idf * (tf / ((k * d) + tf + 0.5))
         return w_t_d
 
@@ -57,7 +53,7 @@ class Bm25_model:
             inverted_index_term = inverted_index[term]
             return inverted_index_term
 
-    def extract_all_documents_term_appears_in(self, inverted_index_term):
+    def extract_documents_term_appears_in(self, inverted_index_term):
 
         documents_term_appears_in = []
         if inverted_index_term:
@@ -88,15 +84,18 @@ class Bm25_model:
 
 
 
-    def rank(self, query, inv_ind, N, doc_size):
+    def rank(self, query, inv_ind, N, doc_size, l_tot):
 
         term_inverted_indexes = {}
         documents_appearing_in = {}
 
+        l_tot = 0
+        for d in doc_size.values():
+            l_tot += int(float(d))
+
         for term in query:
             term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
-            documents_appearing_in[term] = self.extract_all_documents_term_appears_in(term_inverted_indexes[term])
-
+            documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
         union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
 
         document_scores = {}
@@ -111,17 +110,17 @@ class Bm25_model:
 
             for term in query:
                 if term_inverted_indexes[term]:
-                    w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size)
+                    w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size, l_tot)
                     document_vector.append(w_t_d)
                     score += w_t_d
 
             document_scores[document] = score
 
         sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
-        sorted_document_scores = sorted_document_scores[:100]
+        sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
         return sorted_document_scores
 
-    def phrase_rank(self, query, inv_ind, N, doc_size):
+    def phrase_rank(self, query, inv_ind, N, doc_size, l_tot):
 
         term_inverted_indexes = {}
         documents_appearing_in = {}
@@ -131,14 +130,14 @@ class Bm25_model:
 
         for term in query:
             term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
-            documents_appearing_in[term] = self.extract_all_documents_term_appears_in(term_inverted_indexes[term])
+            documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
 
         intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
 
         for doc in intersection_of_documents:
             positional_index = []
             for term in query:
-                positional_index.append(term_inverted_indexes[term][doc])
+                positional_index.append(term_inverted_indexes[term][1][doc])
 
             cons_count = self.consecutive_occ(positional_index)
             if cons_count > 0:
@@ -150,10 +149,10 @@ class Bm25_model:
         for doc in intersection_of_documents:
 
             if doc in tf.keys():
-                document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size)
+                document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size, l_tot)
 
         sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
-        sorted_document_scores = sorted_document_scores[:100]
+        sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
         return sorted_document_scores
 
 if __name__ == '__main__':

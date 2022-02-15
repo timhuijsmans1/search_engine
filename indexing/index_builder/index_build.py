@@ -99,7 +99,7 @@ def index_builder(content_file,
 
             # update size_dict
             content_length = len(pre_processed_article)
-            sizes_dict[str(doc_id)] = content_length
+            sizes_dict[str(doc_id)] = int(content_length)
 
             # update links dict
             if len(links) > 0:
