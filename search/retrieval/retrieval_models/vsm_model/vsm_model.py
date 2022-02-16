@@ -4,7 +4,6 @@ from functools import reduce
 import xml.etree.ElementTree as ET
 import numpy as np
 
-
 ### Import working locally on Vlad's machine
 # from search.retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
 # from search.retrieval.retrieval_helpers.preprocessing import Preprocessing
@@ -13,6 +12,7 @@ import numpy as np
 from retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 
+
 class Vsm_model:
 
     def compute_weight_term_document(self, term, document, positional_inverted_index, documents_appearing_in, N,
@@ -20,19 +20,25 @@ class Vsm_model:
         """
         Function to compute the term weight based on TFIDF term weighing
         """
-        
+
         if document not in positional_inverted_index[term][1]:
             w_t_d = 0
         else:
 
-            doc_size_value = int(doc_size[str(document)]) if doc_size[str(document)] != 'NaN' else 1 # Extracting doc size -
+            doc_size_value = int(doc_size[str(document)]) if doc_size[
+                                                                 str(document)] != 'NaN' else 1  # Extracting doc size -
             # some elements have 'NaN' entry TO DO: ask Humzah to check -
-            tf = len(positional_inverted_index[term][1][document]) # / doc_size_value  # how often the term
-            # appears in the current document /document size (for normalization)
+            tf = len(positional_inverted_index[term][1][document]) # if we divide by the doc size then value gets really low
+            # which then affects the logarithms and all w_t_d terms become 0 When we were normalizing before it was
+            # using an implementation without the log  / doc_size[str(document)]  # how often the term appears in the
+            # current document /document size (for normalization)
 
+            tf = 1 + math.log10(tf)
             df = len(documents_appearing_in[term])
-            idf = 1 + math.log(N / df)  # Total Number of Docs / Numbers of docs with the term in them
-            w_t_d = tf * idf
+            idf = math.log10((N - df) / df)  # Total Number of Docs / Numbers of docs with the term in them
+            w_t_d = tf * idf  # using lecture slides
+            if w_t_d < 0:
+                w_t_d = 0
         return w_t_d
 
     def compute_weight_term_query(self, term, query, N, documents_appearing_in):
@@ -40,10 +46,10 @@ class Vsm_model:
         Slide 21 - lecture 7 - red boxes are for query
         follows lnc.ltc schema -
         """
-        tf = query.count(term) / len(
-            query)  # how many times the term appears in the query / query_length (for normalization)
+        tf = 1 + math.log10(
+            query.count(term))  # how many times the term appears in the query / query_length (for normalization)
         df = len(documents_appearing_in[term])
-        idf = 1 + math.log(N / df)  # IDF is the same regardless if we are looking for query or document weight term
+        idf = math.log10(N / df)  # IDF is the same regardless if we are looking for query or document weight term
         w_t_q = tf * idf
         return w_t_q
 
@@ -58,7 +64,6 @@ class Vsm_model:
         for term in query:
             documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
 
-
         # Find the union of docs between all terms in the query
         union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
 
@@ -68,23 +73,33 @@ class Vsm_model:
             document_vector = []
             query_vector = []
             for term in query:
-                
                 w_t_d = self.compute_weight_term_document(term, document, mini_index, documents_appearing_in, N,
                                                           doc_sizes)
                 w_t_q = self.compute_weight_term_query(term, query, N, documents_appearing_in)
                 document_vector.append(w_t_d)
                 query_vector.append(w_t_q)
+                print("score before multiplication: ", score)
+                print("weight term document: ", w_t_d)
+                print("weight term query: ", w_t_q)
                 score += w_t_d * w_t_q  # dot product (the summation of the terms in each vector multiplied)
+                print("score after multiplication: ", score)
+            print("score is: %f times %f = %f", w_t_d, w_t_q, score)
             document_vector_magnitude = np.linalg.norm(document_vector)
             query_vector_magnitude = np.linalg.norm(query_vector)
+            print("Doc vector magnitude")
+            print(document_vector_magnitude)
+            print("query vector magnitude")
+            print(query_vector_magnitude)
+            print()
             score = score / (
-                        document_vector_magnitude * query_vector_magnitude)  # the product of the magnitudes of the two vectors
+                    document_vector_magnitude * query_vector_magnitude)  # the product of the magnitudes of the two vectors
             score = float(score)
 
             document_scores[document] = score  # append the final score for each document
         sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
+        print("Sorted doc score")
         print(sorted_document_scores)
-        sorted_document_scores = [doc_and_score[0] for doc_and_score in sorted_document_scores[:100]]
+        sorted_document_scores = [doc_and_score[0] for doc_and_score in sorted_document_scores[:20]]
         return sorted_document_scores
 
 
