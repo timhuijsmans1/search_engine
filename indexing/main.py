@@ -3,13 +3,13 @@ import os
 
 from index_builder.index_build import index_builder
 from index_writer.index_writer import index_writer
-from index_retrieval.index_retrieval import retrieval
+from index_retrieval.index_retrieval import load_mini_index
 
 if __name__ == "__main__":
     CONTENT_FILE = "data/article_data/ALL_gd_output_30Jan6Feb_content.tsv"
     STOP_WORD_FILE_PATH = "data/helper_data/englishST.txt"
 
-    OUTPUT_LOCATION = 'output/index_and_index_hash'
+    OUTPUT_LOCATION = 'output/index_and_index_hash_test'
     INDEX_OUTPUT = 'index.json'
     INDEX_HASH_OUTPUT = 'word2byte.json'
     DICTIONARY_SIZE_OUTPUT = 'dict_size.txt'
