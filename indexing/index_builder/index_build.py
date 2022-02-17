@@ -74,7 +74,10 @@ def delta_encoder(index):
     # this executes only once, O(words in vocabulary)
     for word in index:
         occurences, inverted_list = index[word]
-        deltas = starmap(lambda x, y: [x[0] - y[0], x[1]], zip(inverted_list[1:], inverted_list))
+        deltas = starmap(
+            lambda x, y: [x[0] - y[0], x[1]], 
+            zip(inverted_list[1:], inverted_list)
+        )
         encoded_inverted_list = [inverted_list[0], *deltas]
 
         encoded_index[word] = [occurences, encoded_inverted_list]
