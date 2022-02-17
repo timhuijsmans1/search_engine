@@ -108,7 +108,7 @@ def index_builder(content_file,
     # input = tsv with doc_id \t title \t body \t url \t date
     with open(content_file, 'r') as f:
         next(f) # skip the header, delete for a file without header
-        while doc_id < 50:
+        while True:
             print(doc_id)
 
             line = f.readline().strip('\n')
@@ -169,6 +169,7 @@ def index_builder(content_file,
 
     # delta encode inverted index for index writing
     encoded_index = delta_encoder(inverted_index)
-    print(encoded_index)
+
+    
 
     return encoded_index

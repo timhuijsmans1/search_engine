@@ -49,9 +49,6 @@ def results(request):
         # check if date interval starts in the past or today
         if date_start_obj > now:
             return redirect('retireval:index')
-        
-        # TODO
-        # advanced query: retrieve doc numbers, query database for doc numbers and date
 
         context = {
             'category': form_data.get('category'),
