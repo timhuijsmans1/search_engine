@@ -89,6 +89,7 @@ class Bm25_model:
 
         term_inverted_indexes = {}
         documents_appearing_in = {}
+        query = set(query)
 
         for term in query:
             term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
