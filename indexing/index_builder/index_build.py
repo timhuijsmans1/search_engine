@@ -71,9 +71,10 @@ def index_extender(text_body, index, doc_number):
 def delta_encoder(index):
     encoded_index = {}
 
-    # this executes only once, O(words in vocabulary)
     for word in index:
         occurences, inverted_list = index[word]
+
+        # calculates the delta values and rebuilds the inverted list with deltas
         deltas = starmap(
             lambda x, y: [x[0] - y[0], x[1]], 
             zip(inverted_list[1:], inverted_list)

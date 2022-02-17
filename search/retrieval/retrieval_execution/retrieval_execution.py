@@ -1,23 +1,11 @@
 import json
 import numpy as np
-import time
+import datetime
 
-
-# from retrieval.retrieval_helpers.index_loader import load_mini_index
-# from retrieval.retrieval_helpers.preprocessing import Preprocessing
-### imports working for Vlad's machine
-# from search.retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
-# from search.retrieval.retrieval_helpers.preprocessing import Preprocessing
-# from search.retrieval.retrieval_helpers.index_loader import load_mini_index
-# from search.retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
-###
-# from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
-# from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
-
-from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.index_loader import load_mini_index
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
+from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 
 class RetrievalExecution:
 
@@ -30,7 +18,7 @@ class RetrievalExecution:
             link_path,
             total_doc_number,
         ):
-
+        self.start_time = datetime.datetime.now()
         # pre-process query
         if '"' in query:
             self.phrase_bool = True
@@ -40,23 +28,21 @@ class RetrievalExecution:
         preprocessing = Preprocessing()
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
 
-        # ideally, these two open-statements will be executed upon starting to type a query
-        # load hash (dict: {word: [start_byte, bytes_to_read])
-
         with open(word2byte_path, 'r') as hash_handle:
             self.word2byte = json.load(hash_handle)
+
+        print(f"loaded word2byte ({datetime.datetime.now() - self.start_time})")
 
         # load doc_sizes (dict: {doc_id: size})
         with open(doc_size_path, 'r') as doc_size_handle:
             self.doc_sizes = json.load(doc_size_handle)
-
 
         # store total doc number (int)
         self.N = total_doc_number
 
         # load mini index with hash (this is a normal index, only containing query words)
         self.mini_index = load_mini_index(self.pre_processed_query, index_path, self.word2byte)
-
+        print(f"loaded and decoded index ({datetime.datetime.now() - self.start_time})")
         return
 
     def valid_index(self):
@@ -73,11 +59,6 @@ class RetrievalExecution:
     def bm25_ranking(self):
 
         bm25 = Bm25_model()
-        #TODO GHADI
-        # implement the bm25 ranking. At this point, you can use all the initialized data build above.
-
-        # The mini index is an index only consisting of those words from the query that appeared in the 
-        # index. The format of the mini_index is consistent with previous format of the entire index:
         # mini_index[word] = [number_of_appearances, {document1: [position1, position2, ...], document2: [position1, position2, ...]}]
 
         # self.l_tot = 0
@@ -91,23 +72,12 @@ class RetrievalExecution:
             ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
         else:
             ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
-        # this function should return a list of the ranked documents
 
         return ranked_docs
 
     def vsm_ranking(self):
         vsm = Vsm_model()
-        #TODO VLAD
-        # implement the vsm ranking. At this point, you can use all the initialized data build above.
-
-        # We need N, the total size of our collection
-
-        # The mini index is an index only consisting of those words from the query that appeared in the 
-        # index. The format of the mini_index is consistent with previous format of the entire index:
-        # mini_index[word] = [number_of_appearances, {document1: [position1, position2, ...], document2: [position1, position2, ...]}]
-
         ranked_docs = vsm.ranked_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes)
-        # this function should return a list of the ranked documents
         return ranked_docs
     
     def execute_ranking(self, used_model):
@@ -121,10 +91,5 @@ class RetrievalExecution:
         
         if used_model == "vsm":
             ranked_doc_numbers = self.vsm_ranking()
-        
-        # hard code just a list of max 10 document numbers
-        first_word_in_index = list(self.mini_index.keys())[0]
-        some_doc_numbers = list(self.mini_index[first_word_in_index][1].keys())
-        some_doc_ints = [int(doc_id) for doc_id in some_doc_numbers][:10]
-
+        print(f"loaded and decoded index and word2byte and retrieved docs ({datetime.datetime.now() - self.start_time})")
         return ranked_doc_numbers

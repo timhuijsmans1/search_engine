@@ -10,19 +10,19 @@ def delta_decoder(delta_encoded_inverted_list, word):
     inverted list in its original format {word: [document_count, [[doc_number, [positions]]]}
     """
 
-    doc_count, doc_numbers = delta_encoded_inverted_list[word]
+    doc_count, delta_pos_combos = delta_encoded_inverted_list[word]
 
     dict_out = {word: [doc_count, {}]}
 
     # add the first doc number manually
-    doc_number, positions = doc_numbers[0]
-    dict_out[word][1][doc_number] = positions
+    current_doc_num, positions = delta_pos_combos[0]
+    dict_out[word][1][current_doc_num] = positions
 
-    # loop over all but the first doc_numbers, first is not encoded
-    for i in range(1, len(doc_numbers)):
-        doc_number = sum([doc_tuple[0] for doc_tuple in doc_numbers[:i + 1]]) # calculate the doc number for each delta
-        positions = doc_numbers[i][1]
-        dict_out[word][1][doc_number] = positions
+    for delta_pos_combo in delta_pos_combos[1:]:
+        delta, position = delta_pos_combo
+        current_doc_num = current_doc_num + delta
+        dict_out[word][1][current_doc_num] = positions
+
     return dict_out
 
 def load_mini_index(word_list, index_path, word2byte):
@@ -40,7 +40,9 @@ def load_mini_index(word_list, index_path, word2byte):
     mini_index = {}
 
     with open(index_path, 'r') as f:
-        for word in word_list:
+
+        # only load and decode the index of each word once
+        for word in set(word_list):
             try: # if query word is in our vocabulary
                 start_byte = word2byte[word][0]
                 bytes_to_read = word2byte[word][1]
