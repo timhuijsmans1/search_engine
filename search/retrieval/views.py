@@ -3,7 +3,6 @@ from django.http import HttpResponse
 
 from retrieval.models import Article
 from retrieval.retrieval_execution.retrieval_execution import RetrievalExecution
-from retrieval.paths import *
 
 from datetime import datetime
 
@@ -60,10 +59,6 @@ def results(request):
     else:
         retrieval_execution = RetrievalExecution(
             query,
-            INDEX_PATH,
-            WORD2BYTE_PATH,
-            DOC_SIZE_PATH,
-            LINKS_PATH,
             102485
         ) # doc_number is hard coded because counting rows in 
           # table is slow. Need to find an alternative for live indexing
