@@ -10,41 +10,6 @@ from database_population.db_connection import connect
 from database_population.db_updater import add_row
 from index_builder.helpers import Preprocessing
 
-def delta_index_extender(text_body, index, doc_number):
-    """
-    input params:
-    text_body : list
-        list of all the pre-processed tokens in a text body
-    index : dictionary
-        the current index with lists delta and v-byte encoded
-
-    return:
-    extended index in the following format: 
-                        {word: [document_count, [ [doc_delta, [positions]], [doc_delta, [positions]], ... ]}
-    """
-
-    for position, word in enumerate(text_body):
-
-        if index.get(word):
-
-            # sums deltas to find the most recently added doc number of the current word.
-            last_doc_number = sum([doc_tuple[0] for doc_tuple in index[word][1]])
-            delta = doc_number - last_doc_number
-
-            # only add the position to the position list of the existing document number entry
-            if doc_number == last_doc_number: 
-                index[word][1][-1][1].append(position + 1) 
-            # add new doc number/position list to inverted list
-            else:
-                index[word][1].append([delta, [position + 1]])
-                # increment document count of word
-                index[word][0] += 1
-        # build the initial list of doc/pos combos, no delta encoding on this iteration
-        else:
-            index[word] = [1, [[doc_number, [position + 1]]]]
-
-    return index
-
 def index_extender(text_body, index, doc_number):
 
     for position, word in enumerate(text_body):
@@ -90,7 +55,8 @@ def index_builder(content_file,
                  database_cert_path,
                  dict_size_path,
                  link_dict_path,
-                 doc_size_path):
+                 doc_size_path,
+                 index_path):
     """
     return:
     index in the encoded dictionary form 
@@ -170,6 +136,7 @@ def index_builder(content_file,
     # delta encode inverted index for index writing
     encoded_index = delta_encoder(inverted_index)
 
-    
+    with open(index_path, 'w') as f:
+        json.dump(encoded_index, f)
 
     return encoded_index

@@ -1,49 +1,75 @@
 import json
 import numpy as np
 import datetime
+import sys
 
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
-from retrieval.retrieval_helpers.index_loader import load_mini_index
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 
 class RetrievalExecution:
+    
+    print("loading in the index, please wait for the app to start up")
+    with open("retrieval/data/index.json", "r") as index_handle:
+        inverted_index = json.load(index_handle)
+    print(f"loaded the index with a size of {sys.getsizeof(inverted_index)} bytes")
+    
+    with open("retrieval/data/doc_sizes.json", 'r') as doc_size_handle:
+        doc_sizes = json.load(doc_size_handle)
 
     def __init__(
             self, 
             query, 
-            index_path,
-            word2byte_path,
-            doc_size_path,
-            link_path,
             total_doc_number,
         ):
-        self.start_time = datetime.datetime.now()
-        # pre-process query
+
         if '"' in query:
             self.phrase_bool = True
         else:
             self.phrase_bool = False
 
+        self.N = total_doc_number
+
+        # pre process query
         preprocessing = Preprocessing()
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
 
-        with open(word2byte_path, 'r') as hash_handle:
-            self.word2byte = json.load(hash_handle)
-
-        print(f"loaded word2byte ({datetime.datetime.now() - self.start_time})")
-
-        # load doc_sizes (dict: {doc_id: size})
-        with open(doc_size_path, 'r') as doc_size_handle:
-            self.doc_sizes = json.load(doc_size_handle)
-
-        # store total doc number (int)
-        self.N = total_doc_number
-
-        # load mini index with hash (this is a normal index, only containing query words)
-        self.mini_index = load_mini_index(self.pre_processed_query, index_path, self.word2byte)
-        print(f"loaded and decoded index ({datetime.datetime.now() - self.start_time})")
         return
+
+    def delta_decoder(self, delta_encoded_inverted_list):
+        """
+        input params:
+        v_byte_encoded_inverted_list : dictionary
+            one key being the word, and values a list with delta encoded doc_id and decoded positions
+
+        return:
+        inverted list in its original format {word: [document_count, [[doc_number, [positions]]]}
+        """
+        doc_count, delta_pos_combos = delta_encoded_inverted_list # int, list
+        list_out = [doc_count, {}]
+
+        # add the first doc number manually
+        current_doc_num, positions = delta_pos_combos[0] # int, list
+        list_out[1][current_doc_num] = positions # add doc and pos to doc_pos dict
+
+        for delta_pos_combo in delta_pos_combos[1:]:
+            delta, positions = delta_pos_combo
+            current_doc_num = current_doc_num + delta
+            list_out[1][current_doc_num] = positions
+
+        return list_out
+
+    def mini_index_builder(self):
+        self.mini_index = {}
+        start_time = datetime.datetime.now()
+        # if the index is valid (at least one word of query is in the index)
+        for word in self.pre_processed_query:
+            if word in self.inverted_index:
+                decoded_list = self.delta_decoder(self.inverted_index[word])
+                self.mini_index[word] = decoded_list
+        print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
+
+        return self.valid_index()
 
     def valid_index(self):
         """
@@ -59,7 +85,6 @@ class RetrievalExecution:
     def bm25_ranking(self):
 
         bm25 = Bm25_model()
-        # mini_index[word] = [number_of_appearances, {document1: [position1, position2, ...], document2: [position1, position2, ...]}]
 
         # self.l_tot = 0
         # for d in self.doc_sizes.values():
@@ -81,15 +106,17 @@ class RetrievalExecution:
         return ranked_docs
     
     def execute_ranking(self, used_model):
-
-        # if index is empty, do not start retrieval models
-        if not self.valid_index():
+        # returns false if none of the query terms match the index
+        if self.mini_index_builder() == False:
             return False
 
-        if used_model == "bm25":
-            ranked_doc_numbers = self.bm25_ranking()
-        
-        if used_model == "vsm":
-            ranked_doc_numbers = self.vsm_ranking()
-        print(f"loaded and decoded index and word2byte and retrieved docs ({datetime.datetime.now() - self.start_time})")
-        return ranked_doc_numbers
+        # otherwise, execute the desired search model with the query and mini index
+        else:
+            start_time = datetime.datetime.now()
+            if used_model == "bm25":
+                ranked_doc_numbers = self.bm25_ranking()
+            
+            if used_model == "vsm":
+                ranked_doc_numbers = self.vsm_ranking()
+            print(f"retrieval took {datetime.datetime.now() - start_time}")
+            return ranked_doc_numbers
