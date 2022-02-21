@@ -109,7 +109,7 @@ class RetrievalExecution:
     def lm_ranking(self):
         lm = Language_model(miu=2000)
         l_tot = np.sum(np.array(list(self.doc_sizes.values())))
-        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot)
+        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot, use_pitman_yor_process=True)
         return ranked_docs
     
     def execute_ranking(self, used_model):
