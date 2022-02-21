@@ -4,6 +4,7 @@ import datetime
 import sys
 
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
+from retrieval.retrieval_helpers.helpers import write_results_to_file
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 from retrieval.retrieval_models.language_model.language_model import Language_model
@@ -107,7 +108,7 @@ class RetrievalExecution:
         return ranked_docs
 
     def lm_ranking(self):
-        lm = Language_model(miu=2000)
+        lm = Language_model(miu=950)
         l_tot = np.sum(np.array(list(self.doc_sizes.values())))
         ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot, use_pitman_yor_process=True)
         return ranked_docs
@@ -128,4 +129,6 @@ class RetrievalExecution:
             if used_model == "lm":
                 ranked_doc_numbers = self.lm_ranking()
             print(f"retrieval took {datetime.datetime.now() - start_time}")
+            write_results_to_file(ranked_doc_numbers[:20], used_model)  # writing top 20 doc ids to file for easier comparison
+
             return ranked_doc_numbers

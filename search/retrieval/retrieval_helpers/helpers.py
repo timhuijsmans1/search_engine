@@ -1,3 +1,5 @@
+from datetime import datetime
+
 def helper_example():
     # do something
     return None
@@ -20,4 +22,15 @@ def extract_all_documents_term_appears_in(mini_index_term):
         # can throw "Attribute Error: 'NoneType' object has no attribute items
         documents_term_appears_in.append(k)
     return documents_term_appears_in
+
+
+def write_results_to_file(ranked_docs, used_model):
+    timestampStr = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+    timestampStr = used_model + " " + timestampStr
+    filename = timestampStr + ".txt"
+    print("writing results to file")
+    with open(filename, 'w') as f:
+        print(filename)
+        for i, id in enumerate(ranked_docs):
+            f.write("%d: %d\n" % (i, id))
 
