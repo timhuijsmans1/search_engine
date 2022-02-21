@@ -20,7 +20,8 @@ class bm25_model:
         k = 1.5
 
         for d in doc_size.values():
-            l_tot += int(float(d))
+            if d != 'NaN':  # I added this to compare first language model results with the bm25
+                l_tot += int(float(d))
 
         l_avg = l_tot / N
 
@@ -31,7 +32,7 @@ class bm25_model:
 
             df = len(documents_appearing_in[term])
             idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
-            d = doc_size[document] / l_avg
+            d = float(doc_size[document]) / l_avg  # converted this to float to compare first language model results with the bm25
             w_t_d = idf * (tf / ((k * d) + tf + 0.5))
         return w_t_d
 
