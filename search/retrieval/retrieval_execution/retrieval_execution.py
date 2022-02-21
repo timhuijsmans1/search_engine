@@ -6,6 +6,7 @@ import sys
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
+from retrieval.retrieval_models.language_model.language_model import Language_model
 
 class RetrievalExecution:
     
@@ -104,6 +105,12 @@ class RetrievalExecution:
         vsm = Vsm_model()
         ranked_docs = vsm.ranked_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes)
         return ranked_docs
+
+    def lm_ranking(self):
+        lm = Language_model(miu=2000)
+        l_tot = np.sum(np.array(list(self.doc_sizes.values())))
+        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot)
+        return ranked_docs
     
     def execute_ranking(self, used_model):
         # returns false if none of the query terms match the index
@@ -118,5 +125,7 @@ class RetrievalExecution:
             
             if used_model == "vsm":
                 ranked_doc_numbers = self.vsm_ranking()
+            if used_model == "lm":
+                ranked_doc_numbers = self.lm_ranking()
             print(f"retrieval took {datetime.datetime.now() - start_time}")
             return ranked_doc_numbers
