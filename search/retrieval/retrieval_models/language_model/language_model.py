@@ -54,7 +54,7 @@ class Language_model:
 
         union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
         length_collection = l_tot  # length of the collection in terms
-        g = 0.6 # discounting parameter - as used in paper "Improvements to BM25 and Language Model examined - used for pyp implementation
+        g = 0.2 # discounting parameter - as used in paper "Improvements to BM25 and Language Model examined - used for pyp implementation
         length_query = len(query)  # length of the query
         document_scores = {}
         for document in union_of_documents:
@@ -69,7 +69,6 @@ class Language_model:
             L_d = doc_sizes[str(document)]
             if use_pitman_yor_process:
                 dicsounted_l_d = max((L_d - g*(L_d**g)), 0)
-                print(score)
                 final_score = length_query * math.log(1 - (dicsounted_l_d /( L_d + self.miu))) + score
             else:
                 final_score = length_query * math.log(self.miu / (L_d + self.miu)) + score

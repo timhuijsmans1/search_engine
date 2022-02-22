@@ -108,7 +108,7 @@ class RetrievalExecution:
         return ranked_docs
 
     def lm_ranking(self):
-        lm = Language_model(miu=950)
+        lm = Language_model(miu=1303)
         l_tot = np.sum(np.array(list(self.doc_sizes.values())))
         ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot, use_pitman_yor_process=True)
         return ranked_docs
@@ -129,6 +129,6 @@ class RetrievalExecution:
             if used_model == "lm":
                 ranked_doc_numbers = self.lm_ranking()
             print(f"retrieval took {datetime.datetime.now() - start_time}")
-            write_results_to_file(ranked_doc_numbers[:20], used_model)  # writing top 20 doc ids to file for easier comparison
+            write_results_to_file(ranked_doc_numbers[:20], used_model, self.pre_processed_query)  # writing top 20 doc ids to file for easier comparison
 
             return ranked_doc_numbers
