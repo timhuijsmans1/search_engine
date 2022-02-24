@@ -3,6 +3,7 @@ import numpy as np
 import datetime
 import sys
 
+from retrieval.models import Article
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
@@ -43,7 +44,7 @@ class RetrievalExecution:
             one key being the word, and values a list with delta encoded doc_id and decoded positions
 
         return:
-        inverted list in its original format {word: [document_count, [[doc_number, [positions]]]}
+        inverted list in its original format {word: [document_count, {doc_number: [positions]}}
         """
         doc_count, delta_pos_combos = delta_encoded_inverted_list # int, list
         list_out = [doc_count, {}]
@@ -61,15 +62,21 @@ class RetrievalExecution:
 
     def mini_index_builder(self):
         self.mini_index = {}
+
         start_time = datetime.datetime.now()
-        # if the index is valid (at least one word of query is in the index)
+
         for word in self.pre_processed_query:
             if word in self.inverted_index:
                 decoded_list = self.delta_decoder(self.inverted_index[word])
                 self.mini_index[word] = decoded_list
+
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
 
+        # check if mini_index is valid (at least one word of query is in the index)
         return self.valid_index()
+
+    def database_retrieval(self, doc_numbers):
+        return {doc_no: Article.objects.get(document_id=doc_no) for doc_no in doc_numbers}
 
     def valid_index(self):
         """
@@ -85,11 +92,6 @@ class RetrievalExecution:
     def bm25_ranking(self):
 
         bm25 = Bm25_model()
-
-        # self.l_tot = 0
-        # for d in self.doc_sizes.values():
-        #     self.l_tot += int(float(d))
-        #
 
         self.l_tot = np.sum(np.array(list(self.doc_sizes.values())))
 
@@ -110,13 +112,19 @@ class RetrievalExecution:
         if self.mini_index_builder() == False:
             return False
 
-        # otherwise, execute the desired search model with the query and mini index
         else:
+
+            # document ranking
             start_time = datetime.datetime.now()
             if used_model == "bm25":
                 ranked_doc_numbers = self.bm25_ranking()
             
             if used_model == "vsm":
                 ranked_doc_numbers = self.vsm_ranking()
-            print(f"retrieval took {datetime.datetime.now() - start_time}")
-            return ranked_doc_numbers
+            
+            start_time = datetime.datetime.now()
+            # these can be re-ordered according to their date
+            ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
+            print(f"database retrieval took {datetime.datetime.now() - start_time}")
+
+            return ranked_article_objects
