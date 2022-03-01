@@ -35,8 +35,8 @@ def find_how_many_are_retrieved_by_both(bm_results, lm_results, results_filename
 
 
 if __name__ == '__main__':
-    bm_results, bm_query = read_in_file("bm25 stock buy.txt")
-    lm_results, lm_query = read_in_file("lm stock buy.txt")
+    bm_results, bm_query = read_in_file("bm25 cristiano ronaldo.txt")
+    lm_results, lm_query = read_in_file("lm cristiano ronaldo.txt")
     results_filename = "comparison_results.txt"
     find_how_many_in_same_position(bm_results, lm_results, results_filename, bm_query)
     find_how_many_are_retrieved_by_both(bm_results, lm_results, results_filename)

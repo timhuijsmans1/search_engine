@@ -40,3 +40,9 @@ def write_results_to_file(ranked_docs, used_model, pre_processed_query):
         for doc_id in ranked_docs:
             f.write("%d\n" % doc_id)
 
+
+def sort_document_scores(document_scores):
+    sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
+    print(sorted_document_scores[:10])
+    sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
+    return sorted_document_ids

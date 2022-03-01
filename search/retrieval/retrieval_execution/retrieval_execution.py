@@ -108,9 +108,13 @@ class RetrievalExecution:
         return ranked_docs
 
     def lm_ranking(self):
-        lm = Language_model(miu=1303)
+        lm = Language_model(miu=1303, g=0.2)
         l_tot = np.sum(np.array(list(self.doc_sizes.values())))
-        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot, use_pitman_yor_process=True)
+
+        if self.phrase_bool:
+            ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot)
+        else:
+            ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot, use_pitman_yor_process=True)
         return ranked_docs
     
     def execute_ranking(self, used_model):
