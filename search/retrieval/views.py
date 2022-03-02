@@ -65,6 +65,7 @@ def results(request):
           # the alternative could be that we count the index upon app launch 
           # and store the variable in the execution class
         
+
         ranked_article_objects = retrieval_execution.execute_ranking('bm25')
 
         if ranked_article_objects:    

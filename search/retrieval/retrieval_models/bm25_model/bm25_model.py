@@ -116,6 +116,7 @@ class Bm25_model:
 
         sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
         sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
+#        print(sorted_document_scores[:30])
         return sorted_document_scores
 
     def phrase_rank(self, query, inv_ind, N, doc_size, l_tot):
