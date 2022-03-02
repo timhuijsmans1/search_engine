@@ -20,11 +20,23 @@ class Preprocessing:
         stopwords = [x.lower() for x in stopwords]  # lowercase
         return stopwords
 
-    def preprocess_query(self, query):
+    def preprocess_query(self, query, is_proximity_query=False):
+        if is_proximity_query:
+            proximity_value, term1, term2 = self.preprocess_proximity_query()
+            return proximity_value, term1, term2
+
         query = query.split(" ")  # split on blank space to separate terms
         query = [self.stemmer.stem(term) for term in query]  # stem every term in the query
         query = self.remove_stopwords(query)
         return query
+
+    def preprocess_proximity_query(self, query):
+        proximity_value, term1, term2 = re.findall('[a-zA-Z0-9]+', query)
+        proximity_value = int(proximity_value)
+        term1 = self.stemmer.stem(term1)
+        term2 = self.stemmer.stem(term2)
+        preprocessed_query = [term1, term2]
+        return proximity_value, preprocessed_query
 
     def tokenize_text_file(self, text_file):
         tokenized_file = []
@@ -58,4 +70,5 @@ class Preprocessing:
         file = self.case_folding(file)
         file = self.remove_stopwords(file)
         file = self.apply_stemming(file)
+        print(type(file))
         return file

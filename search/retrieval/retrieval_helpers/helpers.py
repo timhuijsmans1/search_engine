@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 def helper_example():
@@ -46,3 +47,10 @@ def sort_document_scores(document_scores):
     print(sorted_document_scores[:10])
     sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
     return sorted_document_ids
+
+
+def is_proximity_query(query):
+    proximity_query_pattern = r'^#(\d+)'  # finds the hashtag in the query
+    is_proximity_query_bool = bool(re.findall(proximity_query_pattern, query))
+    return is_proximity_query_bool
+
