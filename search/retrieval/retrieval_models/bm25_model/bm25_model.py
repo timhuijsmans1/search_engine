@@ -15,7 +15,7 @@ class Bm25_model:
 
 
     def compute_weight_term_document(self, term, document, positional_inverted_index, documents_appearing_in, N,
-Im                                     doc_size, len_tot, l_a, idf):
+                                     doc_size, len_tot, l_a, idf):
 
         l_tot = len_tot
         l_avg = l_a
