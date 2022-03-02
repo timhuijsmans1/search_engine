@@ -66,7 +66,7 @@ class RetrievalExecution:
         #     self.l_tot += int(float(d))
         #
 
-        self.l_tot = np.sum(np.array(list(self.doc_sizes.values())))
+        self.l_tot = sum(list(self.doc_sizes.values()))
 
         if self.phrase_bool:
             ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)

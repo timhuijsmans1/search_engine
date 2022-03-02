@@ -15,22 +15,18 @@ class Bm25_model:
 
 
     def compute_weight_term_document(self, term, document, positional_inverted_index, documents_appearing_in, N,
-                                     doc_size, len_tot):
+Im                                     doc_size, len_tot, l_a, idf):
 
         l_tot = len_tot
-        l_avg = 0
+        l_avg = l_a
         k = 1.5
 
 
-        l_avg = l_tot / N
-
         if document not in positional_inverted_index[term][1].keys():
+
             w_t_d = 0
         else:
             tf = len(positional_inverted_index[term][1][document])
-
-            df = len(documents_appearing_in[term])
-            idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
             d = doc_size[str(document)] / l_avg
             w_t_d = idf * (tf / ((k * d) + tf + 0.5))
 
@@ -46,6 +42,7 @@ class Bm25_model:
         idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
         d = doc_size[str(document)] / l_avg
         w_t_d = idf * (tf / ((k * d) + tf + 0.5))
+
         return w_t_d
 
     def get_term_entry_from_inverted_index(self, inverted_index, term):
@@ -90,16 +87,19 @@ class Bm25_model:
         term_inverted_indexes = {}
         documents_appearing_in = {}
         query = set(query)
+        l_avg = l_tot / N
 
         for term in query:
             term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
             documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
+            df = len(documents_appearing_in[term])
+            idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
         union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
-
         document_scores = {}
 
         if not union_of_documents:
             return False
+
 
         for document in union_of_documents:
 
@@ -107,15 +107,17 @@ class Bm25_model:
             document_vector = []
 
             for term in query:
-                if term_inverted_indexes[term]:
-                    w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size, l_tot)
-                    document_vector.append(w_t_d)
-                    score += w_t_d
+                w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg, idf)
+                document_vector.append(w_t_d)
+                score += w_t_d
 
             document_scores[document] = score
+            # document_scores[document] = sum([self.compute_weight_term_document(t, document, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg, idf) for t in query])
 
-        sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
+        # sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
+        sorted_document_scores = sorted(document_scores.items(), reverse=True)
         sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
+
         return sorted_document_scores
 
     def phrase_rank(self, query, inv_ind, N, doc_size, l_tot):
@@ -125,6 +127,7 @@ class Bm25_model:
         tf = {}
         df = 0
         document_scores = {}
+
 
         for term in query:
             term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
