@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import datetime
+import time
 
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.index_loader import load_mini_index
