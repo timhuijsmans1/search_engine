@@ -61,15 +61,17 @@ def results(request):
             query,
             102485
         ) # doc_number is hard coded because counting rows in 
-          # table is slow. Need to find an alternative for live indexing
+          # table is slow. Need to find an alternative for live indexing 
+          # the alternative could be that we count the index upon app launch 
+          # and store the variable in the execution class
         
-        ranked_docs = retrieval_execution.execute_ranking('lm')
 
-        print("talking to database")
-        if ranked_docs:    
+        ranked_article_objects = retrieval_execution.execute_ranking('bm25')
+
+        if ranked_article_objects:    
             # query DB with docnumbers
-            results = [Article.objects.get(document_id=doc) for doc in ranked_docs]
-        
+            results = list(ranked_article_objects.values())
+
             context = {
                 'results': results,
             }
