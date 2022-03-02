@@ -133,6 +133,9 @@ class RetrievalExecution:
             
             if used_model == "vsm":
                 ranked_doc_numbers = self.vsm_ranking()
+
+            if used_model == "lm":
+                ranked_doc_numbers = self.lm_ranking()
             
             start_time = datetime.datetime.now()
             # these can be re-ordered according to their date
