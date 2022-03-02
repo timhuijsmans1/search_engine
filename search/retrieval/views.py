@@ -3,7 +3,6 @@ from django.http import HttpResponse
 
 from retrieval.models import Article
 from retrieval.retrieval_execution.retrieval_execution import RetrievalExecution
-from retrieval.paths import *
 
 from datetime import datetime
 
@@ -49,9 +48,6 @@ def results(request):
         # check if date interval starts in the past or today
         if date_start_obj > now:
             return redirect('retireval:index')
-        
-        # TODO
-        # advanced query: retrieve doc numbers, query database for doc numbers and date
 
         context = {
             'category': form_data.get('category'),
@@ -63,21 +59,19 @@ def results(request):
     else:
         retrieval_execution = RetrievalExecution(
             query,
-            INDEX_PATH,
-            WORD2BYTE_PATH,
-            DOC_SIZE_PATH,
-            LINKS_PATH,
             102485
         ) # doc_number is hard coded because counting rows in 
-          # table is slow. Need to find an alternative for live indexing
+          # table is slow. Need to find an alternative for live indexing 
+          # the alternative could be that we count the index upon app launch 
+          # and store the variable in the execution class
         
-        ranked_docs = retrieval_execution.execute_ranking('bm25')
 
-        print("talking to database")
-        if ranked_docs:    
+        ranked_article_objects = retrieval_execution.execute_ranking('lm')
+
+        if ranked_article_objects:    
             # query DB with docnumbers
-            results = [Article.objects.get(document_id=doc) for doc in ranked_docs]
-        
+            results = list(ranked_article_objects.values())
+
             context = {
                 'results': results,
             }
