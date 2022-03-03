@@ -1,8 +1,9 @@
 import re
 
 from nltk.stem import PorterStemmer
-
 from retrieval.retrieval_helpers.helpers import read_text_file
+#from search.retrieval.retrieval_helpers.helpers import read_text_file  # - used for testing on Vlad's machine
+
 
 class Preprocessing:
     def __init__(self):
@@ -60,6 +61,14 @@ class Preprocessing:
     def apply_stemming(self, file):
         file = [self.stemmer.stem(x) for x in file]
         return file
+
+    def preprocess_boolean_query(self, query, boolean_operators):
+        terms = [term for term in query.split() if term not in boolean_operators]
+        print("terms from preprocessing module")
+        print(terms)
+        terms = [self.stemmer.stem(term) for term in terms]
+        return terms, boolean_operators
+
 
     def apply_preprocessing(self, file):
         """
