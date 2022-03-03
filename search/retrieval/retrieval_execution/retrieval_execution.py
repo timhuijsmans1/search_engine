@@ -6,9 +6,13 @@ import sys
 from retrieval.models import Article
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import write_results_to_file
+from retrieval.retrieval_helpers.helpers import is_proximity_query
+from retrieval.retrieval_helpers.helpers import find_boolean_operators
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 from retrieval.retrieval_models.language_model.language_model import Language_model
+from retrieval.retrieval_models.proximity_retrieval.proximity_retrieval import proximity_retrieval
+from retrieval.retrieval_models.boolean_retrieval.boolean_retrieval import boolean_retrieval
 
 class RetrievalExecution:
     
@@ -26,15 +30,30 @@ class RetrievalExecution:
             total_doc_number,
         ):
 
+        preprocessing = Preprocessing()
+
+        self.N = total_doc_number
         if '"' in query:
             self.phrase_bool = True
         else:
             self.phrase_bool = False
 
-        self.N = total_doc_number
+        self.proximity_query = False # defining it before checking - if check fails have flag for checking before
+        # retrieval
+        self.boolean_search = False
+        if is_proximity_query(query):
+            self.proximity_query = True
+            self.proximity_value, self.pre_processed_query = preprocessing.preprocess_proximity_query(query)
+            return
+            # only working with query in the format #15(term1, term2) for now # TO DO: Maybe handle error and raise
+            # message to user? return
+        bool_operators = find_boolean_operators(query)
+        if len(bool_operators) > 0:
+            self.boolean_search = True
+            self.pre_processed_query, self.boolean_operators = preprocessing.preprocess_boolean_query(query, bool_operators)
+            return
 
         # pre process query
-        preprocessing = Preprocessing()
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
 
         return
@@ -128,6 +147,19 @@ class RetrievalExecution:
 
             # document ranking
             start_time = datetime.datetime.now()
+
+            if self.proximity_query:  # if we are doing a proximtiy query no need to check which model is used,
+                # just retrieve the docs
+                ranked_doc_numbers = proximity_retrieval(self.mini_index, self.proximity_value)
+                ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
+                print(f"database retrieval took {datetime.datetime.now() - start_time}")
+                return ranked_article_objects
+            elif self.boolean_search:
+                ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N)
+                ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
+                print(f"database retrieval took {datetime.datetime.now() - start_time}")
+                return ranked_article_objects
+
             if used_model == "bm25":
                 ranked_doc_numbers = self.bm25_ranking()
             
@@ -136,7 +168,9 @@ class RetrievalExecution:
 
             if used_model == "lm":
                 ranked_doc_numbers = self.lm_ranking()
-            
+
+            # write_results_to_file(ranked_doc_numbers, used_model, self.pre_processed_query)  # writing ids retrieved
+            # to file
             start_time = datetime.datetime.now()
             # these can be re-ordered according to their date
             ranked_article_objects = self.database_retrieval(ranked_doc_numbers)

@@ -66,7 +66,7 @@ def results(request):
           # and store the variable in the execution class
         
 
-        ranked_article_objects = retrieval_execution.execute_ranking('lm')
+        ranked_article_objects = retrieval_execution.execute_ranking('bm25')
 
         if ranked_article_objects:    
             # query DB with docnumbers

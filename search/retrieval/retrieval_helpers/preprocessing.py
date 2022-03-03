@@ -1,8 +1,9 @@
 import re
 
 from nltk.stem import PorterStemmer
-
 from retrieval.retrieval_helpers.helpers import read_text_file
+#from search.retrieval.retrieval_helpers.helpers import read_text_file  # - used for testing on Vlad's machine
+
 
 class Preprocessing:
     def __init__(self):
@@ -20,11 +21,23 @@ class Preprocessing:
         stopwords = [x.lower() for x in stopwords]  # lowercase
         return stopwords
 
-    def preprocess_query(self, query):
+    def preprocess_query(self, query, is_proximity_query=False):
+        if is_proximity_query:
+            proximity_value, term1, term2 = self.preprocess_proximity_query()
+            return proximity_value, term1, term2
+
         query = query.split(" ")  # split on blank space to separate terms
         query = [self.stemmer.stem(term) for term in query]  # stem every term in the query
         query = self.remove_stopwords(query)
         return query
+
+    def preprocess_proximity_query(self, query):
+        proximity_value, term1, term2 = re.findall('[a-zA-Z0-9]+', query)
+        proximity_value = int(proximity_value)
+        term1 = self.stemmer.stem(term1)
+        term2 = self.stemmer.stem(term2)
+        preprocessed_query = [term1, term2]
+        return proximity_value, preprocessed_query
 
     def tokenize_text_file(self, text_file):
         tokenized_file = []
@@ -49,6 +62,14 @@ class Preprocessing:
         file = [self.stemmer.stem(x) for x in file]
         return file
 
+    def preprocess_boolean_query(self, query, boolean_operators):
+        terms = [term for term in query.split() if term not in boolean_operators]
+        print("terms from preprocessing module")
+        print(terms)
+        terms = [self.stemmer.stem(term) for term in terms]
+        return terms, boolean_operators
+
+
     def apply_preprocessing(self, file):
         """
         Function to process text in a more suitable format
@@ -58,4 +79,5 @@ class Preprocessing:
         file = self.case_folding(file)
         file = self.remove_stopwords(file)
         file = self.apply_stemming(file)
+        print(type(file))
         return file
