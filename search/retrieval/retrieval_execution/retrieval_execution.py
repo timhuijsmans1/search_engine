@@ -6,10 +6,12 @@ import pandas as pd
 
 from retrieval.models import Article
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
+from retrieval.retrieval_helpers.helpers import write_results_to_file
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 from retrieval.retrieval_helpers.helpers import json_loader
 from retrieval.retrieval_helpers.helpers import date2doc_initializer
+from retrieval.retrieval_models.language_model.language_model import Language_model
 
 class RetrievalExecution:
     
@@ -107,7 +109,7 @@ class RetrievalExecution:
 
         bm25 = Bm25_model()
 
-        self.l_tot = np.sum(np.array(list(self.doc_sizes.values())))
+        self.l_tot = sum(list(self.doc_sizes.values()))
 
         if self.phrase_bool:
             ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
@@ -119,6 +121,16 @@ class RetrievalExecution:
     def vsm_ranking(self):
         vsm = Vsm_model()
         ranked_docs = vsm.ranked_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes)
+        return ranked_docs
+
+    def lm_ranking(self):
+        lm = Language_model(miu=1303, g=0.2)
+        l_tot = np.sum(np.array(list(self.doc_sizes.values())))
+
+        if self.phrase_bool:
+            ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot)
+        else:
+            ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot, use_pitman_yor_process=True)
         return ranked_docs
     
     def execute_ranking(self, used_model, start_date, end_date):
@@ -139,6 +151,9 @@ class RetrievalExecution:
             
             if used_model == "vsm":
                 ranked_doc_numbers = self.vsm_ranking()
+
+            if used_model == "lm":
+                ranked_doc_numbers = self.lm_ranking()
             
             start_time = datetime.datetime.now()
             # these can be re-ordered according to their date

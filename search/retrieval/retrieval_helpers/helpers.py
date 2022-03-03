@@ -59,3 +59,26 @@ def extract_all_documents_term_appears_in(mini_index_term):
         documents_term_appears_in.append(k)
     return documents_term_appears_in
 
+
+def write_results_to_file(ranked_docs, used_model, pre_processed_query):
+    filename = used_model
+    for term in pre_processed_query:
+        filename = filename + " " + term
+    filename = filename + ".txt"
+    filename = "retrieval/retrieval_results/" + filename
+    print("writing results to file")
+    with open(filename, 'w') as f:
+        print(filename)
+        for term in pre_processed_query:
+            f.write(term)
+            f.write(" ")
+        f.write("\n")
+        for doc_id in ranked_docs:
+            f.write("%d\n" % doc_id)
+
+
+def sort_document_scores(document_scores):
+    sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
+    print(sorted_document_scores[:10])
+    sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
+    return sorted_document_ids
