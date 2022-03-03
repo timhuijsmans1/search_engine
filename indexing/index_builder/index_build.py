@@ -49,6 +49,18 @@ def delta_encoder(index):
         encoded_index[word] = [occurences, encoded_inverted_list]
     return encoded_index
 
+def date2doc_updater(date, doc_id, date2doc):
+    if date in date2doc: 
+        date2doc[date].append(doc_id)
+    else:
+        date2doc[date] = [doc_id]
+    return date2doc
+
+def json_writer(data, path):
+    with open(path, 'w') as f:
+        json.dump(data, f)
+    return
+
 def index_builder(content_file, 
                  stop_word_file_path,
                  database_config_path,
@@ -56,7 +68,8 @@ def index_builder(content_file,
                  dict_size_path,
                  link_dict_path,
                  doc_size_path,
-                 index_path):
+                 index_path,
+                 date2doc_path):
     """
     return:
     index in the encoded dictionary form 
@@ -65,16 +78,15 @@ def index_builder(content_file,
     inverted_index = {}
     links_dict = {}
     sizes_dict = {}
+    date2doc = {}
 
     connection, cursor = connect(database_config_path, database_cert_path)
 
     doc_id = 1
 
-    # @ part 4 of word doc
-    # input = tsv with doc_id \t title \t body \t url \t date
     with open(content_file, 'r') as f:
         next(f) # skip the header, delete for a file without header
-        while True:
+        while doc_id < 1000:
             print(doc_id)
 
             line = f.readline().strip('\n')
@@ -92,16 +104,20 @@ def index_builder(content_file,
             # whenever the date is provided in the wrong format, skip the iteration
             try:
                 # prepare data types for adding to db
-                publish_date = datetime.strptime(publish_date.strip(' 00:00:00'), '%Y-%m-%d')
+                publish_date_object = datetime.strptime(publish_date.strip(' 00:00:00'), '%Y-%m-%d')
                 title = title.replace('\'', '\'\'')
+                content = body.replace('\'', '\'\'')
             except:
                 print('Skipped a document')
                 continue
             
+            date2doc = date2doc_updater(publish_date, doc_id, date2doc)
+
             print("talking to db")
             # add row to the database with the new info
-            add_row(doc_id, title, url, publish_date, cursor, connection)
+            add_row(doc_id, title, url, publish_date_object, content, cursor, connection)
 
+            # prepare text data for indexing
             preprocessing = Preprocessing(stop_word_file_path)
             pre_processed_article = preprocessing.apply_preprocessing(full_text)
 
@@ -122,21 +138,13 @@ def index_builder(content_file,
             print(indexing_time)
             print('-------------')
 
-    with open(dict_size_path, 'w') as f:
-        f.write(f'size of inverted index dict: {str(sys.getsizeof(inverted_index))} bytes\n')
-        f.write(f'size of content length dict: {str(sys.getsizeof(sizes_dict))} bytes\n')
-        f.write(f'size of link dict: {str(sys.getsizeof(links_dict))} bytes')
-
-    with open(link_dict_path, 'w') as f:
-        json.dump(links_dict, f)
-
-    with open(doc_size_path, 'w') as f:
-        json.dump(sizes_dict, f)
+    # write links and doc sizes to file
+    json_writer(links_dict, link_dict_path)
+    json_writer(sizes_dict, doc_size_path)
+    json_writer(date2doc, date2doc_path)
 
     # delta encode inverted index for index writing
     encoded_index = delta_encoder(inverted_index)
-
-    with open(index_path, 'w') as f:
-        json.dump(encoded_index, f)
+    json_writer(encoded_index, index_path)
 
     return encoded_index

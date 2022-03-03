@@ -2,21 +2,23 @@ import json
 import numpy as np
 import datetime
 import sys
+import pandas as pd
 
 from retrieval.models import Article
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
+from retrieval.retrieval_helpers.helpers import json_loader
+from retrieval.retrieval_helpers.helpers import date2doc_initializer
 
 class RetrievalExecution:
     
     print("loading in the index, please wait for the app to start up")
-    with open("retrieval/data/index.json", "r") as index_handle:
-        inverted_index = json.load(index_handle)
+    inverted_index = json_loader("retrieval/data/index.json")
     print(f"loaded the index with a size of {sys.getsizeof(inverted_index)} bytes")
-    
-    with open("retrieval/data/doc_sizes.json", 'r') as doc_size_handle:
-        doc_sizes = json.load(doc_size_handle)
+
+    date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
+    doc_sizes = json_loader("retrieval/data/doc_sizes.json")
 
     def __init__(
             self, 
@@ -75,6 +77,18 @@ class RetrievalExecution:
         # check if mini_index is valid (at least one word of query is in the index)
         return self.valid_index()
 
+    def get_date_range_union(self, start_date, end_date):
+        doc_numbers = set()
+
+        # get all dates in the range provided as a list of datetime objects
+        date_range = pd.date_range(start_date, end_date).tolist()
+
+        for date in date_range:
+            date_docs_set = self.date2doc.get(date, set())
+            doc_number = doc_numbers | date_docs_set
+
+        return doc_numbers
+
     def database_retrieval(self, doc_numbers):
         return {doc_no: Article.objects.get(document_id=doc_no) for doc_no in doc_numbers}
 
@@ -107,12 +121,16 @@ class RetrievalExecution:
         ranked_docs = vsm.ranked_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes)
         return ranked_docs
     
-    def execute_ranking(self, used_model):
+    def execute_ranking(self, used_model, start_date, end_date):
+
         # returns false if none of the query terms match the index
         if self.mini_index_builder() == False:
             return False
 
         else:
+            # if date filters are provided, get the date range doc union
+            if start_date and end_date:
+                docs_in_date_range = self.get_date_range_union(start_date, end_date)
 
             # document ranking
             start_time = datetime.datetime.now()

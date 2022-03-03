@@ -4,6 +4,7 @@
 
 {% block content %}
    <h3>{{ article.title }}</h3>
-   <p>{{ article.body }}</p>
+   <p>{{ article.url }}</p>
+   <iframe src="{{ article.url }}" style="height:700px;width:800px;" title="{{ article.title }}"></iframe>
    <p>{{ article.publication_date }}</p>
 {% endblock %}
