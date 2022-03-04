@@ -91,10 +91,7 @@ class RetrievalExecution:
         start_time = datetime.datetime.now()
 
         for word in self.pre_processed_query:
-            print("word in preproccsed query from mini_index builder")
             if word in self.inverted_index:
-                print("word in inverted index")
-                print(word)
                 decoded_list = self.delta_decoder(self.inverted_index[word])
                 self.mini_index[word] = decoded_list
 
@@ -163,7 +160,6 @@ class RetrievalExecution:
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects
             elif self.boolean_search:
-                print("execute ranking for boolean search")
                 ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N, self.positions_with_parentheses)
                 ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")

@@ -86,5 +86,4 @@ class Preprocessing:
         file = self.case_folding(file)
         file = self.remove_stopwords(file)
         file = self.apply_stemming(file)
-        print(type(file))
         return file

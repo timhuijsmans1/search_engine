@@ -55,10 +55,6 @@ class Language_model:
         L_c = length_collection
         cf = df
         w_p_d = math.log((tf / self.miu) * (L_c / cf) + 1)
-        print("weight phrase doc")
-        print(w_p_d)
-        print(document)
-        print()
         return w_p_d
 
     def phrase_retrieval(self, query, mini_index, N, doc_sizes, length_collection):
@@ -75,21 +71,17 @@ class Language_model:
             positional_index = []
             for term in query:
                 positional_index.append(mini_index[term][1][doc])  # term positions in the document
-                print("Mini Index")
-                print(mini_index[term][1][doc])
+
 
             cons_count = self.consecutive_occ(positional_index)
             if cons_count > 0:
                 tf[doc] = cons_count
                 df += 1  # total document frequency of the given phrase
         if not intersection_of_documents:
-            print("not in intersection of docs")
             return False
 
         for doc in intersection_of_documents:
             if doc in tf.keys():
-                print("doc in tf.keys")
-                print(doc)
                 document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
                                                                            length_collection)
 
@@ -99,14 +91,9 @@ class Language_model:
     def consecutive_occ(self, inverted_index_doc):
 
         tot = len(inverted_index_doc)
-        print("Tot Value: ", tot)
-        print("Tot App")
         tot_app = sorted(sum(inverted_index_doc, []))  # Main Assumption that one word is not occurring twice in a row
         # Tot app returns the sorted list of document positions
-        print(tot_app)
-        print("Inverted Index Doc")
-        print(inverted_index_doc)
-        print()
+
         count = 0
         consecutive = 0
 
@@ -123,7 +110,6 @@ class Language_model:
         return consecutive
 
     def retrieval(self, query, mini_index, N, doc_sizes, l_tot, use_pitman_yor_process):
-        print("Using language model")
         documents_appearing_in = {}
         query_term_frequency = {}
         for term in query:
