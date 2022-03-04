@@ -23,7 +23,7 @@ class RetrievalExecution:
     inverted_index = json_loader("retrieval/data/index.json")
     print(f"loaded the index with a size of {sys.getsizeof(inverted_index)} bytes")
 
-    date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
+ #   date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
 
     def __init__(
