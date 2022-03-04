@@ -17,8 +17,8 @@ def index(request):
     return render(request, 'retrieval/index.html', context)
 
 def results(request):
-    form_data = value=request.GET
-    
+    form_data = value = request.GET
+
     query = form_data.get('query')
 
     # validate category and query input, redirect back to home otherwise
@@ -30,16 +30,16 @@ def results(request):
     # validate date in advanced search
     date_start = form_data.get('date_start')
     date_end = form_data.get('date_end')
-    
+
     # init retrieval object
     retrieval_execution = RetrievalExecution(
                         query,
                         1000 # change the hardcoded document number accordingly
-    ) 
+    )
 
     # if advanced data search is not switched on, dates are None
     if date_start and date_end:
-        
+
         # check if dates are correct
         valid_bool, start_date_obj, end_date_obj = date_checker(date_start, date_end)
         if valid_bool == False:
@@ -51,16 +51,16 @@ def results(request):
                            end_date_obj
             )
 
-    # this is executed only if date_start and date_end are None      
+    # this is executed only if date_start and date_end are None
     else:
         ranked_article_objects = retrieval_execution.execute_ranking(
                            'bm25',
                            date_start,
                            date_end
         )
-    
+
     # Only return results if relevant documents are found
-    if ranked_article_objects:    
+    if ranked_article_objects:
         # query DB with docnumbers
         results = list(ranked_article_objects.values())
 
