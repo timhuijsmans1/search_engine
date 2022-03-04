@@ -8,7 +8,8 @@ from retrieval.retrieval_helpers.helpers import read_text_file
 class Preprocessing:
     def __init__(self):
         self.stemmer = PorterStemmer()
-        stopwords = read_text_file("retrieval/data/englishST.txt")
+        stopwords = read_text_file(
+            "/Users/vladmatei/PycharmProjects/TextTechnologiesDS/Search_engine/search/retrieval/data/englishST.txt")
         self.stopwords = self.preprocess_stopwords(stopwords)
 
     def remove_stopwords(self, file):
@@ -63,12 +64,18 @@ class Preprocessing:
         return file
 
     def preprocess_boolean_query(self, query, boolean_operators):
-        terms = [term for term in query.split() if term not in boolean_operators]
-        print("terms from preprocessing module")
-        print(terms)
-        terms = [self.stemmer.stem(term) for term in terms]
-        return terms, boolean_operators
-
+        position_with_parantheses = []
+        terms = []
+        i = 0  # keeping track of position of query term
+        for term in query.split():
+            if term not in boolean_operators:
+                if '(' in term:
+                    position_with_parantheses.append(i)
+                term = re.sub('[^a-zA-Z]+', '', term)
+                term = self.stemmer.stem(term)
+                terms.append(term)
+                i+=1
+        return terms, boolean_operators, position_with_parantheses
 
     def apply_preprocessing(self, file):
         """

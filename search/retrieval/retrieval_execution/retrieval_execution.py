@@ -50,7 +50,11 @@ class RetrievalExecution:
         bool_operators = find_boolean_operators(query)
         if len(bool_operators) > 0:
             self.boolean_search = True
-            self.pre_processed_query, self.boolean_operators = preprocessing.preprocess_boolean_query(query, bool_operators)
+            print("we are in boolean search from retrieval execution")
+            self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = preprocessing.preprocess_boolean_query(query, bool_operators)
+            print(self.pre_processed_query)
+            print(self.boolean_operators)
+            print(self.positions_with_parentheses)
             return
 
         # pre process query
@@ -87,7 +91,10 @@ class RetrievalExecution:
         start_time = datetime.datetime.now()
 
         for word in self.pre_processed_query:
+            print("word in preproccsed query from mini_index builder")
             if word in self.inverted_index:
+                print("word in inverted index")
+                print(word)
                 decoded_list = self.delta_decoder(self.inverted_index[word])
                 self.mini_index[word] = decoded_list
 
@@ -141,6 +148,7 @@ class RetrievalExecution:
     def execute_ranking(self, used_model):
         # returns false if none of the query terms match the index
         if self.mini_index_builder() == False:
+            print("mini index builder false")
             return False
 
         else:
@@ -155,7 +163,8 @@ class RetrievalExecution:
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects
             elif self.boolean_search:
-                ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N)
+                print("execute ranking for boolean search")
+                ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N, self.positions_with_parentheses)
                 ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects

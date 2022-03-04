@@ -12,6 +12,7 @@ class Language_model:
     def __init__(self, miu, g):
         self.miu = miu  # Tuning Parameter
         self.g = g  # Tuning Parameter
+
     def compute_weight_term_document(self, tf_q, term, mini_index, document, length_collection):
 
         L_c = length_collection
@@ -44,7 +45,6 @@ class Language_model:
 
         return w_t_d
 
-
     def compute_weight_phrase_document(self, document, tf, df, N, doc_sizes, length_collection):
         """
         Using the same formula as the LM with Dirichet smoothing, but treating the phrase as one term with values
@@ -54,7 +54,7 @@ class Language_model:
         """
         L_c = length_collection
         cf = df
-        w_p_d = math.log((tf/self.miu)*(L_c/cf)+1)
+        w_p_d = math.log((tf / self.miu) * (L_c / cf) + 1)
         print("weight phrase doc")
         print(w_p_d)
         print(document)
@@ -86,16 +86,15 @@ class Language_model:
             print("not in intersection of docs")
             return False
 
-
         for doc in intersection_of_documents:
             if doc in tf.keys():
                 print("doc in tf.keys")
                 print(doc)
-                document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes, length_collection)
+                document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
+                                                                           length_collection)
 
         sorted_document_ids = sort_document_scores(document_scores)
         return sorted_document_ids
-
 
     def consecutive_occ(self, inverted_index_doc):
 
@@ -103,7 +102,7 @@ class Language_model:
         print("Tot Value: ", tot)
         print("Tot App")
         tot_app = sorted(sum(inverted_index_doc, []))  # Main Assumption that one word is not occurring twice in a row
-                                                       # Tot app returns the sorted list of document positions
+        # Tot app returns the sorted list of document positions
         print(tot_app)
         print("Inverted Index Doc")
         print(inverted_index_doc)
@@ -119,10 +118,8 @@ class Language_model:
                         if count == (tot - 1):
                             consecutive += 1
                             count = 0
-
             else:
                 count = 0
-
         return consecutive
 
     def retrieval(self, query, mini_index, N, doc_sizes, l_tot, use_pitman_yor_process):
@@ -146,7 +143,8 @@ class Language_model:
                                                                   document, length_collection)
                     score += w_t_d
                 else:  # use lm-dirichlet smoothing
-                    self.miu = 1089 # Different value identified in the paper compared to those used when pitman_yor_process is used
+                    self.miu = 1089  # Different value identified in the paper compared to those used when
+                    # pitman_yor_process is used
                     w_t_d = self.compute_weight_term_document(query_term_frequency[term], term, mini_index, document,
                                                               length_collection)
                     score += w_t_d
@@ -159,9 +157,6 @@ class Language_model:
             document_scores[document] = final_score
         sorted_document_ids = sort_document_scores(document_scores)
         ## TO DO - Here find score with exactly equal values - or within 10% range - should be duplicates so only keep one
-
-        for i, id in enumerate(sorted_document_ids[:20]):
-            print("%d : %d" % (i + 1, id))  # Printing rank:id (easier to see and compare in the terminal)
         return sorted_document_ids
 
 

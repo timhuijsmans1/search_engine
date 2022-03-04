@@ -15,9 +15,10 @@ def index(request):
     }
     return render(request, 'retrieval/index.html', context)
 
+
 def results(request):
-    form_data = value=request.GET
-    
+    form_data = value = request.GET
+
     query = form_data.get('query')
 
     # validate category and query input, redirect back to home otherwise
@@ -60,15 +61,14 @@ def results(request):
         retrieval_execution = RetrievalExecution(
             query,
             102485
-        ) # doc_number is hard coded because counting rows in 
-          # table is slow. Need to find an alternative for live indexing 
-          # the alternative could be that we count the index upon app launch 
-          # and store the variable in the execution class
-        
+        )  # doc_number is hard coded because counting rows in
+        # table is slow. Need to find an alternative for live indexing
+        # the alternative could be that we count the index upon app launch
+        # and store the variable in the execution class
 
-        ranked_article_objects = retrieval_execution.execute_ranking('bm25')
+        ranked_article_objects = retrieval_execution.execute_ranking('lm')
 
-        if ranked_article_objects:    
+        if ranked_article_objects:
             # query DB with docnumbers
             results = list(ranked_article_objects.values())
 
@@ -78,6 +78,7 @@ def results(request):
             return render(request, 'retrieval/results.html', context)
         else:
             return redirect('retrieval:index')
+
 
 def article_detail(request, document_id):
     article = get_object_or_404(Article, document_id=document_id)
