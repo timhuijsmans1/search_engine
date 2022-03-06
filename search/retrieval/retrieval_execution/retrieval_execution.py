@@ -7,6 +7,7 @@ import pandas as pd
 from retrieval.models import Article
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import write_results_to_file
+from retrieval.retrieval_helpers.helpers import spellcheck_query
 from retrieval.retrieval_helpers.helpers import is_proximity_query
 from retrieval.retrieval_helpers.helpers import find_boolean_operators
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
@@ -23,7 +24,7 @@ class RetrievalExecution:
     inverted_index = json_loader("retrieval/data/index.json")
     print(f"loaded the index with a size of {sys.getsizeof(inverted_index)} bytes")
 
-    date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
+#    date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
 
     def __init__(
@@ -33,6 +34,7 @@ class RetrievalExecution:
         ):
 
         preprocessing = Preprocessing()
+        query = spellcheck_query(query)
 
         self.N = total_doc_number
         if '"' in query:

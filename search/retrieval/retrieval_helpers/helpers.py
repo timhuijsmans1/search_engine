@@ -1,10 +1,15 @@
 import json
 import re
 from datetime import datetime
+from textblob import TextBlob
+
+from spellchecker import SpellChecker
+
 
 def helper_example():
     # do something
     return None
+
 
 def date2doc_initializer(date2doc_string):
     date2doc_obj = {}
@@ -14,16 +19,19 @@ def date2doc_initializer(date2doc_string):
         date2doc_obj[date_obj] = doc_set
     return date2doc_obj
 
+
 def read_text_file(filepath):
     with open(filepath) as f:
         lines = f.readlines()
         return lines
+
 
 def json_loader(path):
     with open(path, "r") as f:
         output = json.load(f)
 
     return output
+
 
 def date_checker(date_start, date_end):
     now = datetime.now()
@@ -54,7 +62,7 @@ def extract_all_documents_term_appears_in(mini_index_term):
     """
 
     documents_term_appears_in = []
-    for k, v in mini_index_term.items(): # key = documentNo, value = number of appearances
+    for k, v in mini_index_term.items():  # key = documentNo, value = number of appearances
         # can throw "Attribute Error: 'NoneType' object has no attribute items
         documents_term_appears_in.append(k)
     return documents_term_appears_in
@@ -90,5 +98,20 @@ def is_proximity_query(query):
 
 def find_boolean_operators(query):
     boolean_keywords = ["AND", "NOT", "OR"]
-    boolean_operators_present = re.findall(r"(?=(" + '|'.join(boolean_keywords) + r"))", query)  #  TO DO: Maybe change to "if term in query" more readable - this implementation works with more than 1 AND, OR etc.
+    boolean_operators_present = re.findall(r"(?=(" + '|'.join(boolean_keywords) + r"))",
+                                           query)  # TO DO: Maybe change to "if term in query" more readable - this implementation works with more than 1 AND, OR etc.
     return boolean_operators_present
+
+
+def spellcheck_query(query):
+    spell = SpellChecker()
+    text = TextBlob(query)
+    corrected_string = text.correct()
+    corrected_query = []
+    query = query.split() # query comes in as string
+    for term in query:
+        corrected_term = spell.correction(term)  # returns the most likely answer, uses Levenshtein distance
+        # based on this post - https://norvig.com/spell-correct.html
+        corrected_query.append(corrected_term)
+    corrected_query = " ".join(str(term) for term in corrected_query)  # convert back to string so no problems with preprocessing
+    return corrected_query
