@@ -5,7 +5,7 @@ from index_builder.index_build import index_builder
 from index_writer.index_writer import index_writer
 
 if __name__ == "__main__":
-    CONTENT_FILE = "data/article_data/ALL_gd_output_30Jan6Feb_content.tsv"
+    CONTENT_FILE = "data/article_data/Final.tsv"
     STOP_WORD_FILE_PATH = "data/helper_data/englishST.txt"
 
     OUTPUT_LOCATION = 'output/index_and_index_hash'
