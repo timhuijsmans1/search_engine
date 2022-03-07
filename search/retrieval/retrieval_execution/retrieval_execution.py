@@ -60,7 +60,6 @@ class RetrievalExecution:
                 self.query_abv = self.abv_dict[t.upper()]
                 self.abv_bool = True
 
-        print(self.abv_bool)
         self.proximity_query = False  # defining it before checking - if check fails have flag for checking before
         # retrieval
         self.boolean_search = False
