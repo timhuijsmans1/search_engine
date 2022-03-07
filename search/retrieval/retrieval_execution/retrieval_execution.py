@@ -74,10 +74,11 @@ class RetrievalExecution:
         bool_operators = find_boolean_operators(query)
         if len(bool_operators) > 0:
             self.boolean_search = True
-            self.pre_processed_query, self.boolean_operators = preprocessing.preprocess_boolean_query(query,
+            self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = preprocessing.preprocess_boolean_query(query,
                                                                                                       bool_operators)
             return
 
+        query = spellcheck_query(query)   #  only spell check query if it's not boolean or proximity retrieval
         # pre process query
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
         if self.abv_bool:

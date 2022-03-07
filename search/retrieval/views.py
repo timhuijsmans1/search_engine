@@ -20,7 +20,6 @@ def results(request):
     form_data = value = request.GET
 
     query = form_data.get('query')
-
     # validate category and query input, redirect back to home otherwise
     if form_data.get('category') == None:
         return redirect('retrieval:index')
