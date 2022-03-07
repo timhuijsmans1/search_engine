@@ -190,7 +190,7 @@ def index_builder(content_file,
                 sizes_size = total_size(sizes_dict) / 1000000
                 print(f"normal index size is {inverted_size} mb")
                 print(f"date2 size is {date2_size} mb")
-                print(f"sizes size index size is {sizes_size} mb")
+                print(f"sizes size is {sizes_size} mb")
                 if inverted_size > 2000:
                     partial_writer(inverted_index, index_path, index_partial_count)
                     # delete the index copy

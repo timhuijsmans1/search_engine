@@ -1,14 +1,6 @@
 import json
 import os
 
-# with open("../output/index_and_index_hash/index_2.json") as f:
-#     while True:
-#         line = f.readline().strip('\n')
-#         if not line:
-#             break
-#         term_dict = json.loads(line)
-#         print(term_dict)
-
 def index_merge(index1, index2, output_index):
     with open(index1, "r") as f1:
         with open(index2, "r") as f2:
