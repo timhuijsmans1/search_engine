@@ -164,12 +164,12 @@ class RetrievalExecution:
 
         if self.phrase_bool:
             ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes,
-                                           self.l_tot)
+                                           self.l_tot, self.abv_bool)
         elif self.abv_bool:
             ranked_docs = bm25.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N,
-                                    self.doc_sizes, self.l_tot)
+                                    self.doc_sizes, self.l_tot, self.abv_bool)
         else:
-            ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
+            ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot, self.abv_bool)
 
         return ranked_docs
 
@@ -183,10 +183,14 @@ class RetrievalExecution:
         l_tot = sum(list(self.doc_sizes.values()))
 
         if self.phrase_bool:
-            ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot)
+            ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot, self.abv_bool)
+
+        elif self.abv_bool:
+            ranked_docs = lm.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N, self.doc_sizes, l_tot,
+                                       self.abv_bool, use_pitman_yor_process=True)
         else:
             ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
-                                       use_pitman_yor_process=True)
+                                       self.abv_bool, use_pitman_yor_process=True)
         return ranked_docs
 
     def execute_ranking(self, used_model, start_date, end_date):
