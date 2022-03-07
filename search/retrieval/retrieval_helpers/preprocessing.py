@@ -63,12 +63,18 @@ class Preprocessing:
         return file
 
     def preprocess_boolean_query(self, query, boolean_operators):
-        terms = [term for term in query.split() if term not in boolean_operators]
-        print("terms from preprocessing module")
-        print(terms)
-        terms = [self.stemmer.stem(term) for term in terms]
-        return terms, boolean_operators
-
+        position_with_parantheses = []
+        terms = []
+        i = 0  # keeping track of position of query term
+        for term in query.split():
+            if term not in boolean_operators:
+                if '(' in term:
+                    position_with_parantheses.append(i)
+                term = re.sub('[^a-zA-Z]+', '', term)
+                term = self.stemmer.stem(term)
+                terms.append(term)
+                i+=1
+        return terms, boolean_operators, position_with_parantheses
 
     def apply_preprocessing(self, file):
         """
@@ -79,5 +85,4 @@ class Preprocessing:
         file = self.case_folding(file)
         file = self.remove_stopwords(file)
         file = self.apply_stemming(file)
-        print(type(file))
         return file
