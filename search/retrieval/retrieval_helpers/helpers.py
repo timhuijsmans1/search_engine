@@ -109,7 +109,7 @@ def spellcheck_query(query):
     spell = SpellChecker()
     corrected_query = []
     query = query.split()  # query comes in as string
-    nyse_listed = pd.read_csv("/Users/vladmatei/PycharmProjects/TextTechnologiesDS/Search_engine/search/retrieval/retrieval_helpers/nyse_listed_companies.csv")
+    nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nyse_listed_companies.csv")
     for term in query:
         if nyse_listed['Symbol'].str.contains(term).any():  # check if term is an abbreviation of common stock
             term = nyse_listed.loc[nyse_listed['Symbol'] == term, 'Name'].item()
@@ -125,7 +125,7 @@ def spellcheck_query(query):
 
 
 def pre_process_nasdaq_list():
-    nyse_listed = pd.read_csv("/Users/vladmatei/PycharmProjects/TextTechnologiesDS/Search_engine/search/retrieval/retrieval_helpers/nasdaq_screener.csv")
+    nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nasdaq_screener.csv")
     nyse_listed['Symbol'] = nyse_listed['Symbol'].str.lower()
     nyse_listed['Name'] = nyse_listed['Name'].str.lower()
     nyse_listed.to_csv("nyse_listed_companies.csv")

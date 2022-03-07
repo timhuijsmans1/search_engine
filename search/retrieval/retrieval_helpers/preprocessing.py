@@ -8,8 +8,7 @@ from retrieval.retrieval_helpers.helpers import read_text_file
 class Preprocessing:
     def __init__(self):
         self.stemmer = PorterStemmer()
-        stopwords = read_text_file(
-            "/Users/vladmatei/PycharmProjects/TextTechnologiesDS/Search_engine/search/retrieval/data/englishST.txt")
+        stopwords = read_text_file("retrieval/data/englishST.txt")
         self.stopwords = self.preprocess_stopwords(stopwords)
 
     def remove_stopwords(self, file):
