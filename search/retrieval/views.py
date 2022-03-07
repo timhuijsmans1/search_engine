@@ -46,7 +46,7 @@ def results(request):
             return redirect('retrieval:index')
         else:
             ranked_article_objects = retrieval_execution.execute_ranking(
-                           'bm25',
+                           'lm',
                            start_date_obj,
                            end_date_obj
             )
@@ -54,7 +54,7 @@ def results(request):
     # this is executed only if date_start and date_end are None
     else:
         ranked_article_objects = retrieval_execution.execute_ranking(
-                           'bm25',
+                           'lm',
                            date_start,
                            date_end
         )

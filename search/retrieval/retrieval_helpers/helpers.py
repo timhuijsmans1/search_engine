@@ -1,6 +1,8 @@
 import json
 import re
 from datetime import datetime
+
+import pandas as pd
 from textblob import TextBlob
 
 from spellchecker import SpellChecker
@@ -105,13 +107,27 @@ def find_boolean_operators(query):
 
 def spellcheck_query(query):
     spell = SpellChecker()
-    text = TextBlob(query)
-    corrected_string = text.correct()
     corrected_query = []
-    query = query.split() # query comes in as string
+    query = query.split()  # query comes in as string
+    nyse_listed = pd.read_csv("/Users/vladmatei/PycharmProjects/TextTechnologiesDS/Search_engine/search/retrieval/retrieval_helpers/nyse_listed_companies.csv")
     for term in query:
-        corrected_term = spell.correction(term)  # returns the most likely answer, uses Levenshtein distance
-        # based on this post - https://norvig.com/spell-correct.html
-        corrected_query.append(corrected_term)
+        if nyse_listed['Symbol'].str.contains(term).any():  # check if term is an abbreviation of common stock
+            term = nyse_listed.loc[nyse_listed['Symbol'] == term, 'Name'].item()
+            corrected_query.append(term)
+        elif nyse_listed['Name'].str.contains(term).any():  # check if the term is in the full name of the company -
+            # example berkshire would get corrected to something irrelevant
+            corrected_query.append(term)
+        else:
+            corrected_term = spell.correction(term)
+            corrected_query.append(corrected_term)
     corrected_query = " ".join(str(term) for term in corrected_query)  # convert back to string so no problems with preprocessing
     return corrected_query
+
+
+def pre_process_nasdaq_list():
+    nyse_listed = pd.read_csv("/Users/vladmatei/PycharmProjects/TextTechnologiesDS/Search_engine/search/retrieval/retrieval_helpers/nasdaq_screener.csv")
+    nyse_listed['Symbol'] = nyse_listed['Symbol'].str.lower()
+    nyse_listed['Name'] = nyse_listed['Name'].str.lower()
+    nyse_listed.to_csv("nyse_listed_companies.csv")
+    stop = 0
+
