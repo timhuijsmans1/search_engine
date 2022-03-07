@@ -188,7 +188,7 @@ class RetrievalExecution:
                                        use_pitman_yor_process=True)
         return ranked_docs
 
-    def execute_ranking(self, used_model):
+    def execute_ranking(self, used_model, start_date, end_date):
         # returns false if none of the query terms match the index
         if self.mini_index_builder() == False:
             print('vlad')
