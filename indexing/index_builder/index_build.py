@@ -30,6 +30,7 @@ def index_extender(text_body, index, doc_number):
                 index[word][1][doc_number].append(position + 1)
             else:
                 index[word][1][doc_number] = [position + 1]
+                index[word][0] += 1
         
         else:
             index[word] = [1, {doc_number: [position + 1]}]
