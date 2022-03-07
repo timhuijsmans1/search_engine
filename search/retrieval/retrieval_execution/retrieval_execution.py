@@ -2,6 +2,7 @@ import json
 import numpy as np
 import datetime
 import sys
+import csv
 
 from retrieval.models import Article
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
@@ -14,31 +15,46 @@ from retrieval.retrieval_models.language_model.language_model import Language_mo
 from retrieval.retrieval_models.proximity_retrieval.proximity_retrieval import proximity_retrieval
 from retrieval.retrieval_models.boolean_retrieval.boolean_retrieval import boolean_retrieval
 
+
 class RetrievalExecution:
-    
     print("loading in the index, please wait for the app to start up")
     with open("retrieval/data/index.json", "r") as index_handle:
         inverted_index = json.load(index_handle)
     print(f"loaded the index with a size of {sys.getsizeof(inverted_index)} bytes")
-    
+
     with open("retrieval/data/doc_sizes.json", 'r') as doc_size_handle:
         doc_sizes = json.load(doc_size_handle)
 
+    abv_dict = {}
+    with open("retrieval/data/Fin_abbv.csv", 'r') as fin_abbv:
+        abbv_temp = csv.reader(fin_abbv)
+        for a, m in abbv_temp:
+            abv_dict[a] = m
+
     def __init__(
-            self, 
-            query, 
+            self,
+            query,
             total_doc_number,
-        ):
+    ):
 
         preprocessing = Preprocessing()
 
         self.N = total_doc_number
+        self.abv_bool = False
         if '"' in query:
             self.phrase_bool = True
         else:
             self.phrase_bool = False
 
-        self.proximity_query = False # defining it before checking - if check fails have flag for checking before
+        for t in query.split():
+            print(t)
+            self.abv_dict_keys = [i.strip() for i in self.abv_dict.keys()]
+            if t.upper() in self.abv_dict_keys:
+                self.query_abv = self.abv_dict[t.upper()]
+                self.abv_bool = True
+
+        print(self.abv_bool)
+        self.proximity_query = False  # defining it before checking - if check fails have flag for checking before
         # retrieval
         self.boolean_search = False
         if is_proximity_query(query):
@@ -50,12 +66,14 @@ class RetrievalExecution:
         bool_operators = find_boolean_operators(query)
         if len(bool_operators) > 0:
             self.boolean_search = True
-            self.pre_processed_query, self.boolean_operators = preprocessing.preprocess_boolean_query(query, bool_operators)
+            self.pre_processed_query, self.boolean_operators = preprocessing.preprocess_boolean_query(query,
+                                                                                                      bool_operators)
             return
 
         # pre process query
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
-
+        if self.abv_bool:
+            self.pre_processed_abv_query = preprocessing.apply_preprocessing(self.query_abv)
         return
 
     def delta_decoder(self, delta_encoded_inverted_list):
@@ -67,12 +85,12 @@ class RetrievalExecution:
         return:
         inverted list in its original format {word: [document_count, {doc_number: [positions]}}
         """
-        doc_count, delta_pos_combos = delta_encoded_inverted_list # int, list
+        doc_count, delta_pos_combos = delta_encoded_inverted_list  # int, list
         list_out = [doc_count, {}]
 
         # add the first doc number manually
-        current_doc_num, positions = delta_pos_combos[0] # int, list
-        list_out[1][current_doc_num] = positions # add doc and pos to doc_pos dict
+        current_doc_num, positions = delta_pos_combos[0]  # int, list
+        list_out[1][current_doc_num] = positions  # add doc and pos to doc_pos dict
 
         for delta_pos_combo in delta_pos_combos[1:]:
             delta, positions = delta_pos_combo
@@ -90,6 +108,12 @@ class RetrievalExecution:
             if word in self.inverted_index:
                 decoded_list = self.delta_decoder(self.inverted_index[word])
                 self.mini_index[word] = decoded_list
+
+        if self.abv_bool:
+            for word in self.pre_processed_abv_query:
+                if word in self.inverted_index:
+                    decoded_list = self.delta_decoder(self.inverted_index[word])
+                    self.mini_index[word] = decoded_list
 
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
 
@@ -114,10 +138,16 @@ class RetrievalExecution:
 
         bm25 = Bm25_model()
 
+        print(self.abv_bool)
+
         self.l_tot = sum(list(self.doc_sizes.values()))
 
         if self.phrase_bool:
-            ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
+            ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes,
+                                           self.l_tot)
+        elif self.abv_bool:
+            ranked_docs = bm25.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N,
+                                    self.doc_sizes, self.l_tot)
         else:
             ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
 
@@ -135,12 +165,14 @@ class RetrievalExecution:
         if self.phrase_bool:
             ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot)
         else:
-            ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot, use_pitman_yor_process=True)
+            ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
+                                       use_pitman_yor_process=True)
         return ranked_docs
-    
+
     def execute_ranking(self, used_model):
         # returns false if none of the query terms match the index
         if self.mini_index_builder() == False:
+            print('vlad')
             return False
 
         else:
@@ -162,7 +194,7 @@ class RetrievalExecution:
 
             if used_model == "bm25":
                 ranked_doc_numbers = self.bm25_ranking()
-            
+
             if used_model == "vsm":
                 ranked_doc_numbers = self.vsm_ranking()
 

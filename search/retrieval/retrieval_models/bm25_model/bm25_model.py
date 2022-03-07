@@ -21,14 +21,17 @@ class Bm25_model:
         l_avg = l_a
         k = 1.5
 
+        if term in positional_inverted_index.keys():
+            if document not in positional_inverted_index[term][1].keys():
 
-        if document not in positional_inverted_index[term][1].keys():
+                w_t_d = 0
+            else:
+                tf = len(positional_inverted_index[term][1][document])
+                d = doc_size[str(document)] / l_avg
+                w_t_d = idf * (tf / ((k * d) + tf + 0.5))
 
-            w_t_d = 0
         else:
-            tf = len(positional_inverted_index[term][1][document])
-            d = doc_size[str(document)] / l_avg
-            w_t_d = idf * (tf / ((k * d) + tf + 0.5))
+            w_t_d = 0
 
         return w_t_d
 
@@ -81,6 +84,70 @@ class Bm25_model:
         return consecutive
 
 
+    def abbv(self, query, abbv_query, inv_ind, N, doc_size, l_tot):
+
+        term_inverted_indexes = {}
+        documents_appearing_in = {}
+        query = set(query)
+        l_avg = l_tot / N
+        tf = {}
+        df_p = 0
+        union_of_documents = []
+        document_scores = {}
+
+        for term in query:
+            term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
+            if term_inverted_indexes[term]:
+                documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
+                df = len(documents_appearing_in[term])
+                idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
+                union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+
+
+        for term in abbv_query:
+            term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
+            documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
+
+        intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+
+        if union_of_documents:
+            for document in union_of_documents:
+
+                score = 0
+                document_vector = []
+
+                for term in query:
+                    w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg, idf)
+                    document_vector.append(w_t_d)
+                    score += w_t_d
+
+                document_scores[document] = score
+
+        for doc in intersection_of_documents:
+            positional_index = []
+            for term in abbv_query:
+                positional_index.append(term_inverted_indexes[term][1][doc])
+
+            cons_count = self.consecutive_occ(positional_index)
+            if cons_count > 0:
+                tf[doc] = cons_count
+                df_p += 1
+
+        if not intersection_of_documents:
+            return False
+
+        for doc in intersection_of_documents:
+
+            if doc in list(tf.keys()):
+                if doc in document_scores.keys():
+                    document_scores[doc] += self.compute_weight_phrase_document(doc, tf[doc], df_p, N, doc_size, l_tot)
+                else:
+                    document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df_p, N, doc_size, l_tot)
+
+        sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
+        sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
+
+        return sorted_document_scores
 
     def rank(self, query, inv_ind, N, doc_size, l_tot):
 
@@ -114,10 +181,8 @@ class Bm25_model:
             document_scores[document] = score
             # document_scores[document] = sum([self.compute_weight_term_document(t, document, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg, idf) for t in query])
 
-        # sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
-        sorted_document_scores = sorted(document_scores.items(), reverse=True)
+        sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
         sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
-
         return sorted_document_scores
 
     def phrase_rank(self, query, inv_ind, N, doc_size, l_tot):
@@ -144,6 +209,8 @@ class Bm25_model:
             if cons_count > 0:
                 tf[doc] = cons_count
                 df += 1
+
+
         if not intersection_of_documents:
             return False
 
