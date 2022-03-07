@@ -108,6 +108,7 @@ def find_boolean_operators(query):
 def spellcheck_query(query):
     spell = SpellChecker()
     corrected_query = []
+    has_term_been_corrected = False # flag for knowing if we should display message to user in view
     query = query.split()  # query comes in as string
     nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nyse_listed_companies.csv")
     for term in query:
@@ -120,8 +121,9 @@ def spellcheck_query(query):
         else:
             corrected_term = spell.correction(term)
             corrected_query.append(corrected_term)
+            has_term_been_corrected = True
     corrected_query = " ".join(str(term) for term in corrected_query)  # convert back to string so no problems with preprocessing
-    return corrected_query
+    return corrected_query, has_term_been_corrected
 
 
 def pre_process_nasdaq_list():
@@ -129,5 +131,4 @@ def pre_process_nasdaq_list():
     nyse_listed['Symbol'] = nyse_listed['Symbol'].str.lower()
     nyse_listed['Name'] = nyse_listed['Name'].str.lower()
     nyse_listed.to_csv("nyse_listed_companies.csv")
-    stop = 0
 

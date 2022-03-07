@@ -44,7 +44,9 @@ class RetrievalExecution:
     ):
 
         preprocessing = Preprocessing()
-        query = spellcheck_query(query)
+        self.initial_query = query
+        query, self.has_term_been_corrected = spellcheck_query(query)
+        self.corrected_query = query  # save the spellchecked query before pre processing it
 
         self.N = total_doc_number
         self.abv_bool = False
@@ -229,4 +231,4 @@ class RetrievalExecution:
             ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
             print(f"database retrieval took {datetime.datetime.now() - start_time}")
 
-            return ranked_article_objects
+            return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
