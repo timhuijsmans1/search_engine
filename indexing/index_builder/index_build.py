@@ -37,24 +37,28 @@ def index_extender(text_body, index, doc_number):
 
     return index
 
-def delta_encoder(index):
-    encoded_index = {}
-    total_index_size = len(list(index.keys()))
-    count = 1
-    for word in index:
-        print(f"{count} / {total_index_size}")
-        occurences, inverted_list = index[word]
+def index_extender_list(text_body, index, doc_number):
 
-        # calculates the delta values and rebuilds the inverted list with deltas
-        deltas = starmap(
-            lambda x, y: [x[0] - y[0], x[1]], 
-            zip(inverted_list[1:], inverted_list)
-        )
-        encoded_inverted_list = [inverted_list[0], *deltas]
+    for position, word in enumerate(text_body):
 
-        encoded_index[word] = [occurences, encoded_inverted_list]
-        count += 1
-    return encoded_index
+        if word in index:
+
+            last_doc_number = index[word][1][-1][0]
+            
+            # only add the position to the position list of the existing document number entry
+            if doc_number == last_doc_number: 
+                index[word][1][-1][1].append(position + 1) 
+            # add new doc number/position list to inverted list
+            else:
+                index[word][1].append([doc_number, [position + 1]])
+                # increment document count of word
+                index[word][0] += 1
+        
+        # build the initial list of doc/pos combos, no delta encoding on this iteration
+        else:
+            index[word] = [1, [[doc_number, [position + 1]]]]
+    
+    return index
 
 def total_size(o, handlers={}, verbose=False):
     
