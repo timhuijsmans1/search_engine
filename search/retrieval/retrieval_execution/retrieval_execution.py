@@ -62,6 +62,9 @@ class RetrievalExecution:
                 self.query_abv = self.abv_dict[t.upper()]
                 self.abv_bool = True
 
+        if not self.abv_bool:
+            query = spellcheck_query(query)
+
         self.proximity_query = False  # defining it before checking - if check fails have flag for checking before
         # retrieval
         self.boolean_search = False
@@ -74,10 +77,11 @@ class RetrievalExecution:
         bool_operators = find_boolean_operators(query)
         if len(bool_operators) > 0:
             self.boolean_search = True
-            self.pre_processed_query, self.boolean_operators = preprocessing.preprocess_boolean_query(query,
+            self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = preprocessing.preprocess_boolean_query(query,
                                                                                                       bool_operators)
             return
 
+        query = spellcheck_query(query)   #  only spell check query if it's not boolean or proximity retrieval
         # pre process query
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
         if self.abv_bool:
@@ -180,7 +184,7 @@ class RetrievalExecution:
 
     def lm_ranking(self):
         lm = Language_model(miu=1303, g=0.2)
-        l_tot = np.sum(np.array(list(self.doc_sizes.values())))
+        l_tot = sum(list(self.doc_sizes.values()))
 
         if self.phrase_bool:
             ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot)
