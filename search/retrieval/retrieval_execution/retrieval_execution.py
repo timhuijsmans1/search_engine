@@ -45,8 +45,8 @@ class RetrievalExecution:
 
         preprocessing = Preprocessing()
         self.initial_query = query
-        query, self.has_term_been_corrected = spellcheck_query(query)
-        self.corrected_query = query  # save the spellchecked query before pre processing it
+        self.has_term_been_corrected = False
+        self.corrected_query = ""
 
         self.N = total_doc_number
         self.abv_bool = False
@@ -62,8 +62,8 @@ class RetrievalExecution:
                 self.query_abv = self.abv_dict[t.upper()]
                 self.abv_bool = True
 
-        if not self.abv_bool:
-            query = spellcheck_query(query)
+#        if not self.abv_bool:
+#            query = spellcheck_query(query)
 
         self.proximity_query = False  # defining it before checking - if check fails have flag for checking before
         # retrieval
@@ -81,11 +81,16 @@ class RetrievalExecution:
                                                                                                       bool_operators)
             return
 
-        query = spellcheck_query(query)   #  only spell check query if it's not boolean or proximity retrieval
+
+        query, self.has_term_been_corrected = spellcheck_query(
+                query, self.abv_bool)  # only spell check query if it's not boolean or proximity retrieval
+        self.corrected_query = query  # save the spellchecked query before pre processing it
+
         # pre process query
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
         if self.abv_bool:
             self.pre_processed_abv_query = preprocessing.apply_preprocessing(self.query_abv)
+
         return
 
     def delta_decoder(self, delta_encoded_inverted_list):
@@ -212,12 +217,12 @@ class RetrievalExecution:
                 ranked_doc_numbers = proximity_retrieval(self.mini_index, self.proximity_value)
                 ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
-                return ranked_article_objects
+                return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
             elif self.boolean_search:
                 ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N, self.positions_with_parentheses)
                 ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
-                return ranked_article_objects
+                return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
 
             if used_model == "bm25":
                 ranked_doc_numbers = self.bm25_ranking()
