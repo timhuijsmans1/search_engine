@@ -185,21 +185,18 @@ def index_builder(content_file,
             # update index
             inverted_index = index_extender(pre_processed_article, inverted_index, int(doc_id))
 
-            doc_id += 1
-
             # if index starts to exceed size, write it to file and restart
-            if doc_id % 10000 == 0:
-                inverted_size = total_size(inverted_index) / 1000000
+            if doc_id % 60000 == 0:
                 date2_size = total_size(date2doc) / 1000000
                 sizes_size = total_size(sizes_dict) / 1000000
-                print(f"normal index size is {inverted_size} mb")
                 print(f"date2 size is {date2_size} mb")
                 print(f"sizes size is {sizes_size} mb")
-                if inverted_size > 2000:
-                    partial_writer(inverted_index, index_path, index_partial_count)
-                    # delete the index copy
-                    inverted_index = {}
-                    index_partial_count += 1
+                partial_writer(inverted_index, index_path, index_partial_count)
+                # delete the index copy
+                inverted_index = {}
+                index_partial_count += 1
+
+            doc_id += 1
 
     json_writer(sizes_dict, doc_size_path)
     json_writer(date2doc, date2doc_path)
