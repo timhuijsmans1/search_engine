@@ -62,7 +62,6 @@ def extract_all_documents_term_appears_in(mini_index_term):
     Mini_index_term - only the mini-index entry for the specific term
     Returns: documents_term_appears_in
     """
-
     documents_term_appears_in = []
     for k, v in mini_index_term.items():  # key = documentNo, value = number of appearances
         # can throw "Attribute Error: 'NoneType' object has no attribute items

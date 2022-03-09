@@ -56,7 +56,6 @@ class RetrievalExecution:
             self.phrase_bool = False
 
         for t in query.split():
-            print(t)
             self.abv_dict_keys = [i.strip() for i in self.abv_dict.keys()]
             if t.upper() in self.abv_dict_keys:
                 self.query_abv = self.abv_dict[t.upper()]
@@ -124,7 +123,9 @@ class RetrievalExecution:
 
         start_time = datetime.datetime.now()
 
+        print("")
         self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/index.json", self.word2byte)
+        print("the mini index contains the words:", self.mini_index.keys())
 
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
 
@@ -153,7 +154,6 @@ class RetrievalExecution:
         are no results for the input query.
         """
         if len(self.mini_index.keys()) == 0:
-            print("no results")
             return False
         else:
             return True
@@ -170,7 +170,7 @@ class RetrievalExecution:
             ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes,
                                            self.l_tot)
         elif self.abv_bool:
-            ranked_docs = bm25.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N,
+            ranked_docs = bm25.abbv(self.original_query, self.pre_processed_abv_query, self.mini_index, self.N,
                                     self.doc_sizes, self.l_tot)
         else:
             ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
@@ -196,7 +196,6 @@ class RetrievalExecution:
     def execute_ranking(self, used_model, start_date, end_date):
         # returns false if none of the query terms match the index
         if self.mini_index_builder() == False:
-            print('vlad')
             return False
 
         else:
