@@ -6,6 +6,7 @@ import pandas as pd
 import csv
 
 from retrieval.models import Article
+from retrieval.retrieval_helpers.index_loader import load_mini_index
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import write_results_to_file
 from retrieval.retrieval_helpers.helpers import spellcheck_query
@@ -21,15 +22,14 @@ from retrieval.retrieval_models.boolean_retrieval.boolean_retrieval import boole
 
 
 class RetrievalExecution:
-    print("loading in the index, please wait for the app to start up")
-    inverted_index = json_loader("retrieval/data/index.json")
-    print(f"loaded the index with a size of {sys.getsizeof(inverted_index)} bytes")
 
-    with open("retrieval/data/doc_sizes.json", 'r') as doc_size_handle:
-        doc_sizes = json.load(doc_size_handle)
-
-#    date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
+    # date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
+    
+    print("loading in search dictionaries, please wait for the app to start up")
+    word2byte = json_loader("retrieval/data/word2byte.json")
+    date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
+    print("done loading all startup files")
 
     abv_dict = {}
     with open("retrieval/data/Fin_abbv.csv", 'r') as fin_abbv:
@@ -62,8 +62,8 @@ class RetrievalExecution:
                 self.query_abv = self.abv_dict[t.upper()]
                 self.abv_bool = True
 
-#        if not self.abv_bool:
-#            query = spellcheck_query(query)
+        # if not self.abv_bool:
+        #     query = spellcheck_query(query)
 
         self.proximity_query = False  # defining it before checking - if check fails have flag for checking before
         # retrieval
@@ -117,14 +117,10 @@ class RetrievalExecution:
         return list_out
 
     def mini_index_builder(self):
-        self.mini_index = {}
 
         start_time = datetime.datetime.now()
 
-        for word in self.pre_processed_query:
-            if word in self.inverted_index:
-                decoded_list = self.delta_decoder(self.inverted_index[word])
-                self.mini_index[word] = decoded_list
+        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/index_dict.json", self.word2byte)
 
         if self.abv_bool:
             for word in self.pre_processed_abv_query:
@@ -133,6 +129,7 @@ class RetrievalExecution:
                     self.mini_index[word] = decoded_list
 
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
+        print(self.mini_index.keys())
 
         # check if mini_index is valid (at least one word of query is in the index)
         return self.valid_index()
@@ -159,6 +156,7 @@ class RetrievalExecution:
         are no results for the input query.
         """
         if len(self.mini_index.keys()) == 0:
+            print("no results")
             return False
         else:
             return True

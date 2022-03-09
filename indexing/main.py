@@ -9,7 +9,6 @@ if __name__ == "__main__":
     STOP_WORD_FILE_PATH = "data/helper_data/englishST.txt"
 
     OUTPUT_LOCATION = 'output/index_and_index_hash'
-    INDEX_OUTPUT = 'index.json'
     INDEX_HASH_OUTPUT = 'word2byte.json'
     DICTIONARY_SIZE_OUTPUT = 'dict_size.txt'
     DOC_SIZE_OUTPUT = 'doc_sizes.json'
@@ -25,14 +24,8 @@ if __name__ == "__main__":
                                         DATABASE_CONFIG_PATH,
                                         DATABASE_CERT_PATH,
                                         os.path.join(OUTPUT_LOCATION, DICTIONARY_SIZE_OUTPUT),
-                                        os.path.join(OUTPUT_LOCATION, LINKS_OUTPUT),
                                         os.path.join(OUTPUT_LOCATION, DOC_SIZE_OUTPUT),
-                                        os.path.join(OUTPUT_LOCATION, INDEX_OUTPUT),
+                                        OUTPUT_LOCATION,
                                         os.path.join(OUTPUT_LOCATION, DATE2DOC_OUTPUT))
-    
-    # this function writes the index to memory and returns the byte offset hash
-    # index_writer(inverted_index_final, 
-    #                         os.path.join(OUTPUT_LOCATION, INDEX_OUTPUT), 
-    #                         os.path.join(OUTPUT_LOCATION, INDEX_HASH_OUTPUT))
 
     

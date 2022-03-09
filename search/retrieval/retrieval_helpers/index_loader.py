@@ -53,8 +53,7 @@ def load_mini_index(word_list, index_path, word2byte):
 
                 # add inverted list to the index we want to retrieve
                 inverted_list_dict = json.loads(inverted_list)
-                decoded_inverted_list = delta_decoder(inverted_list_dict, word)
-                mini_index = {**mini_index, **decoded_inverted_list}
+                mini_index = {**mini_index, **inverted_list_dict}
                 
             except:
                 pass # if query word is not in our vocabulary
