@@ -6,7 +6,9 @@
 
 {% if term_been_corrected  %}
 <p>Showing results for: {{corrected_query}}</p>
-<p>Search instead for: <button>{{original_query}}</button> </p>
+Search instead for: <a href="{% url 'retrieval:results' query=original_query category=document_category date_start=start_of_date_range date_end=end_of_date_range %}" class="btn btn-secondary">
+                     {{original_query}}
+                    </a>
 {% endif %}
 
   {% for result in results %}

@@ -1,30 +1,5 @@
 import json
 
-def delta_decoder(delta_encoded_inverted_list, word):
-    """
-    input params:
-    v_byte_encoded_inverted_list : dictionary
-        one key being the word, and values a list with delta encoded doc_id and decoded positions
-
-    return:
-    inverted list in its original format {word: [document_count, [[doc_number, [positions]]]}
-    """
-
-    doc_count, delta_pos_combos = delta_encoded_inverted_list[word]
-
-    dict_out = {word: [doc_count, {}]}
-
-    # add the first doc number manually
-    current_doc_num, positions = delta_pos_combos[0]
-    dict_out[word][1][current_doc_num] = positions
-
-    for delta_pos_combo in delta_pos_combos[1:]:
-        delta, position = delta_pos_combo
-        current_doc_num = current_doc_num + delta
-        dict_out[word][1][current_doc_num] = positions
-
-    return dict_out
-
 def load_mini_index(word_list, index_path, word2byte):
     """
     input params:

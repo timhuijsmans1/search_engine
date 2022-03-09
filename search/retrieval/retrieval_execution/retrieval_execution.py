@@ -19,18 +19,29 @@ from retrieval.retrieval_helpers.helpers import date2doc_initializer
 from retrieval.retrieval_models.language_model.language_model import Language_model
 from retrieval.retrieval_models.proximity_retrieval.proximity_retrieval import proximity_retrieval
 from retrieval.retrieval_models.boolean_retrieval.boolean_retrieval import boolean_retrieval
+from retrieval.retrieval_helpers.index_compression import *
 
 
 class RetrievalExecution:
 
     # date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     
-    print("loading in search dictionaries, please wait for the app to start up")
+    print("loading in search dictionaries")
     word2byte = json_loader("retrieval/data/word2byte.json")
     date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
     print("done loading all startup files")
 
+    print("loading and compressing index")
+    encoded_index = index_compressor('retrieval/data/index.json')
+    print(f"finished encoding")
+
+    print("sizes in memory:")
+    print(f"1. date2doc: {total_size(date2doc) / 1000000} mb")
+    print(f"1. doc_sizes: {total_size(doc_sizes) / 1000000} mb")
+    print(f"1. word2byte: {total_size(word2byte) / 1000000} mb")
+    print(f"1. encoded index: {total_size(encoded_index) / 1000000} mb")
+    
     abv_dict = {}
     with open("retrieval/data/Fin_abbv.csv", 'r') as fin_abbv:
         abbv_temp = csv.reader(fin_abbv)
@@ -80,7 +91,6 @@ class RetrievalExecution:
                                                                                                       bool_operators)
             return
 
-
         query, self.has_term_been_corrected = spellcheck_query(
                 query, self.abv_bool)  # only spell check query if it's not boolean or proximity retrieval
         self.corrected_query = query  # save the spellchecked query before pre processing it
@@ -95,29 +105,6 @@ class RetrievalExecution:
             self.pre_processed_query = self.pre_processed_query + self.pre_processed_abv_query
 
         return
-
-    def delta_decoder(self, delta_encoded_inverted_list):
-        """
-        input params:
-        v_byte_encoded_inverted_list : dictionary
-            one key being the word, and values a list with delta encoded doc_id and decoded positions
-
-        return:
-        inverted list in its original format {word: [document_count, {doc_number: [positions]}}
-        """
-        doc_count, delta_pos_combos = delta_encoded_inverted_list  # int, list
-        list_out = [doc_count, {}]
-
-        # add the first doc number manually
-        current_doc_num, positions = delta_pos_combos[0]  # int, list
-        list_out[1][current_doc_num] = positions  # add doc and pos to doc_pos dict
-
-        for delta_pos_combo in delta_pos_combos[1:]:
-            delta, positions = delta_pos_combo
-            current_doc_num = current_doc_num + delta
-            list_out[1][current_doc_num] = positions
-
-        return list_out
 
     def mini_index_builder(self):
 
