@@ -44,16 +44,16 @@ def results(request):
         if valid_bool == False:
             return redirect('retrieval:index')
         else:
-            ranked_article_objects = retrieval_execution.execute_ranking(
-                           'bm25',
+            ranked_article_objects, has_term_been_corrected, query = retrieval_execution.execute_ranking(
+                           'lm',
                            start_date_obj,
                            end_date_obj
             )
 
     # this is executed only if date_start and date_end are None
     else:
-        ranked_article_objects = retrieval_execution.execute_ranking(
-                           'bm25',
+        ranked_article_objects, has_term_been_corrected, corrected_query, original_query = retrieval_execution.execute_ranking(
+                           'lm',
                            date_start,
                            date_end
         )
@@ -65,6 +65,9 @@ def results(request):
 
         context = {
             'results': results,
+            'term_been_corrected': has_term_been_corrected,
+            'corrected_query': corrected_query,
+            'original_query': original_query
         }
         return render(request, 'retrieval/results.html', context)
     else:

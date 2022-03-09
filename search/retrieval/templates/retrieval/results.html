@@ -3,6 +3,12 @@
 {% block title %}Search{% endblock %}
 
 {% block content %}
+
+{% if term_been_corrected  %}
+<p>Showing results for: {{corrected_query}}</p>
+<p>Search instead for: <button>{{original_query}}</button> </p>
+{% endif %}
+
   {% for result in results %}
     <p>
       <ul id="result-list">
