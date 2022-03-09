@@ -88,8 +88,12 @@ class RetrievalExecution:
 
         # pre process query
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
+
+        # get the original, the abv and the combined query, to execute the index retrieval only once
         if self.abv_bool:
             self.pre_processed_abv_query = preprocessing.apply_preprocessing(self.query_abv)
+            self.original_query = self.pre_processed_query
+            self.pre_processed_query = self.pre_processed_query + self.pre_processed_abv_query
 
         return
 
@@ -120,16 +124,9 @@ class RetrievalExecution:
 
         start_time = datetime.datetime.now()
 
-        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/index_dict.json", self.word2byte)
-
-        if self.abv_bool:
-            for word in self.pre_processed_abv_query:
-                if word in self.inverted_index:
-                    decoded_list = self.delta_decoder(self.inverted_index[word])
-                    self.mini_index[word] = decoded_list
+        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/index.json", self.word2byte)
 
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
-        print(self.mini_index.keys())
 
         # check if mini_index is valid (at least one word of query is in the index)
         return self.valid_index()
