@@ -68,7 +68,7 @@ class RetrievalExecution:
 
         start_time = datetime.datetime.now()
 
-        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/index.json", self.word2byte)
+        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/index_dict.json", self.word2byte)
 
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
         print(self.mini_index.keys())
@@ -98,6 +98,7 @@ class RetrievalExecution:
         are no results for the input query.
         """
         if len(self.mini_index.keys()) == 0:
+            print("no results")
             return False
         else:
             return True
