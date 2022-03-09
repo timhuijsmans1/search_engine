@@ -76,10 +76,10 @@ def index_compressor(index_path):
                 index_line = json.loads(line)
                 term = list(index_line.keys())[0]
                 doc_count, doc2pos = index_line[term]
+                if count == 2:
+                    print(term, len(doc2pos.keys()))
                 bytestream = compressor(doc2pos, doc_count)
                 encoded_index[term] = bytestream
-                if count < 10:
-                    print()
                 count += 1
     
     print(total_size(encoded_index))
@@ -87,10 +87,20 @@ def index_compressor(index_path):
 
     return encoded_index
 
+def delta_decoder(delta_list):
+    current_doc_id = delta_list[0]
+    doc_ids = [current_doc_id]
+    for delta in delta_list[1:]:
+        current_doc_id = delta + current_doc_id
+        doc_ids.append(current_doc_id)
+
+    return doc_ids
+
+
 def decoder(encoded_index, query):
     mini_index = {}
     start_time = datetime.datetime.now()
-    for word in query:
+    for word in set(query):
         encoded_list = encoded_index.get(word)
         if encoded_list:
             inverted_list = vbcode.decode(encoded_list)
@@ -99,8 +109,12 @@ def decoder(encoded_index, query):
             doc_count = inverted_list[0]
             docs_and_tf = inverted_list[1:]
 
+            deltas = docs_and_tf[0::2]
+            doc_ids = delta_decoder(deltas)
+            term_frequencies = docs_and_tf[1::2]
+            
             # turn the list of alternating doc_id and tf into a map
-            docs2tf = dict(zip(docs_and_tf[0::2], docs_and_tf[1::2]))
+            docs2tf = dict(zip(doc_ids, term_frequencies))
 
             mini_index[word] = [doc_count, docs2tf]
     
@@ -108,8 +122,16 @@ def decoder(encoded_index, query):
 
     return mini_index
 
+def json_writer(compressed_index, path):
+    with open(path, "w") as f:
+        json.dump(compressed_index, f)
+    return
+
 if __name__ == "__main__":
     INDEX_PATH = "../output/index_and_index_hash/index_1.json"
+    COMPRESSED_INDEX_PATH = "../output/index_and_index_hash/compressed_index.json"
     index = index_compressor(INDEX_PATH)
-    mini_index = decoder(index, ["00000","0000","000","00","0","abandon", "stock", "price", "dikkewhitesneak"])
-    print(mini_index)
+    print(index)
+    json_writer(index, COMPRESSED_INDEX_PATH)
+
+    
