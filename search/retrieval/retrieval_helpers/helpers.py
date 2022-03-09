@@ -105,17 +105,18 @@ def find_boolean_operators(query):
     return boolean_operators_present
 
 
-def spellcheck_query(query, is_finance_abbreviation):
+def spellcheck_query(query, is_finance_abbreviation, is_phrase_bool):
     spell = SpellChecker()
     corrected_query = []
-    has_term_been_corrected = False # flag for knowing if we should display message to user in view
+    has_term_been_corrected = False  # flag for knowing if we should display message to user in view
     query = query.split()  # query comes in as string
     nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nyse_listed_companies.csv")
     for term in query:
         if term in nyse_listed['Symbol'].values:  # check if term is an abbreviation of common stock
             term = nyse_listed.loc[nyse_listed['Symbol'] == term, 'Name'].item()
             corrected_query.append(term)
-        elif nyse_listed['Name'].str.contains(term).any() or is_finance_abbreviation:  # check if the term is in the full name of the company -
+        elif nyse_listed['Name'].str.contains(
+                term).any() or is_finance_abbreviation or is_phrase_bool:  # check if the term is in the full name of the company -
             # example berkshire would get corrected to something irrelevant
             # or finance abbreviation such as ytm
             corrected_query.append(term)
@@ -124,7 +125,8 @@ def spellcheck_query(query, is_finance_abbreviation):
             corrected_query.append(corrected_term)
             has_term_been_corrected = True
 
-    corrected_query = " ".join(str(term) for term in corrected_query)  # convert back to string so no problems with preprocessing
+    corrected_query = " ".join(
+        str(term) for term in corrected_query)  # convert back to string so no problems with preprocessing
     return corrected_query, has_term_been_corrected
 
 
@@ -133,4 +135,40 @@ def pre_process_nasdaq_list():
     nyse_listed['Symbol'] = nyse_listed['Symbol'].str.lower()
     nyse_listed['Name'] = nyse_listed['Name'].str.lower()
     nyse_listed.to_csv("nyse_listed_companies.csv")
+
+
+def is_phrase_bool(query):
+    if '"' in query:
+        return True
+    return False
+
+
+def set_abv_bool_values(query, abv_dict):
+    query_abv = ""
+    abv_bool = False
+    for t in query.split():
+        abv_dict_keys = [i.rstrip() for i in abv_dict.keys()]
+        if t.upper() in abv_dict_keys:
+            query_abv = abv_dict[t.upper()]
+            abv_bool = True
+    return query_abv, abv_bool
+
+
+def set_proximity_values(query, preprocessor):
+    is_proximity_query_bool = True
+    proximity_value, preprocessed_query = preprocessor.preprocess_proximity_query(query)
+    return is_proximity_query_bool, proximity_value, preprocessed_query
+
+
+def prepare_boolean_query(query, bool_operators, preprocessor):
+    boolean_search = True
+    preprocessed_boolean_query, boolean_operators, positions_with_parentheses = preprocessor.preprocess_boolean_query(
+        query, bool_operators)
+    return boolean_search, preprocessed_boolean_query, boolean_operators, positions_with_parentheses
+
+def apply_spellchecking(query, abv_bool, phrase_bool):
+    has_term_been_corrected = False
+    query, has_term_been_corrected = spellcheck_query(query, abv_bool, phrase_bool)
+    corrected_query = query
+    return query, has_term_been_corrected, corrected_query
 

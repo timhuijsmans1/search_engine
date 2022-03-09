@@ -11,9 +11,15 @@ from retrieval.retrieval_helpers.helpers import write_results_to_file
 from retrieval.retrieval_helpers.helpers import spellcheck_query
 from retrieval.retrieval_helpers.helpers import is_proximity_query
 from retrieval.retrieval_helpers.helpers import find_boolean_operators
+from retrieval.retrieval_helpers.helpers import is_phrase_bool
+from retrieval.retrieval_helpers.helpers import set_abv_bool_values
+from retrieval.retrieval_helpers.helpers import set_proximity_values
+from retrieval.retrieval_helpers.helpers import prepare_boolean_query
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 from retrieval.retrieval_helpers.helpers import json_loader
+from retrieval.retrieval_helpers.helpers import apply_spellchecking
+
 from retrieval.retrieval_helpers.helpers import date2doc_initializer
 from retrieval.retrieval_models.language_model.language_model import Language_model
 from retrieval.retrieval_models.proximity_retrieval.proximity_retrieval import proximity_retrieval
@@ -28,7 +34,7 @@ class RetrievalExecution:
     with open("retrieval/data/doc_sizes.json", 'r') as doc_size_handle:
         doc_sizes = json.load(doc_size_handle)
 
-#    date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
+    #    date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
 
     abv_dict = {}
@@ -44,47 +50,18 @@ class RetrievalExecution:
     ):
 
         preprocessing = Preprocessing()
-        self.initial_query = query
-        self.has_term_been_corrected = False
-        self.corrected_query = ""
+        self.set_initial_values(total_doc_number, query)  # assigning all initial values outside to keep this clean
 
-        self.N = total_doc_number
-        self.abv_bool = False
-        if '"' in query:
-            self.phrase_bool = True
-        else:
-            self.phrase_bool = False
-
-        for t in query.split():
-            print(t)
-            self.abv_dict_keys = [i.strip() for i in self.abv_dict.keys()]
-            if t.upper() in self.abv_dict_keys:
-                self.query_abv = self.abv_dict[t.upper()]
-                self.abv_bool = True
-
-#        if not self.abv_bool:
-#            query = spellcheck_query(query)
-
-        self.proximity_query = False  # defining it before checking - if check fails have flag for checking before
-        # retrieval
-        self.boolean_search = False
         if is_proximity_query(query):
-            self.proximity_query = True
-            self.proximity_value, self.pre_processed_query = preprocessing.preprocess_proximity_query(query)
-            return
-            # only working with query in the format #15(term1, term2) for now # TO DO: Maybe handle error and raise
-            # message to user? return
+            self.proximity_query, self.proximity_value, self.pre_processed_query = set_proximity_values(query, preprocessing)
+            return  # only working with query in the format #15(term1, term2) for now
+
         bool_operators = find_boolean_operators(query)
         if len(bool_operators) > 0:
-            self.boolean_search = True
-            self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = preprocessing.preprocess_boolean_query(query,
-                                                                                                      bool_operators)
+            self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
             return
 
-
-        query, self.has_term_been_corrected = spellcheck_query(
-                query, self.abv_bool)  # only spell check query if it's not boolean or proximity retrieval
-        self.corrected_query = query  # save the spellchecked query before pre processing it
+        query, self.has_term_been_corrected, self.corrected_query = apply_spellchecking(query, self.abv_bool, self.phrase_bool)
 
         # pre process query
         self.pre_processed_query = preprocessing.apply_preprocessing(query)
@@ -92,6 +69,17 @@ class RetrievalExecution:
             self.pre_processed_abv_query = preprocessing.apply_preprocessing(self.query_abv)
 
         return
+
+    def set_initial_values(self, total_doc_number, query):
+        self.initial_query = query
+        self.has_term_been_corrected = False
+        self.corrected_query = ""
+        self.proximity_query = False
+        self.boolean_search = False
+        self.N = total_doc_number
+        self.abv_bool = False
+        self.phrase_bool = is_phrase_bool(query)
+        self.query_abv, self.abv_bool = set_abv_bool_values(query, self.abv_dict)
 
     def delta_decoder(self, delta_encoded_inverted_list):
         """
@@ -178,7 +166,8 @@ class RetrievalExecution:
             ranked_docs = bm25.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N,
                                     self.doc_sizes, self.l_tot, self.abv_bool)
         else:
-            ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot, self.abv_bool)
+            ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
+                                    self.abv_bool)
 
         return ranked_docs
 
@@ -192,11 +181,13 @@ class RetrievalExecution:
         l_tot = sum(list(self.doc_sizes.values()))
 
         if self.phrase_bool:
-            ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot, self.abv_bool)
+            ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
+                                              self.abv_bool)
 
         elif self.abv_bool:
-            ranked_docs = lm.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N, self.doc_sizes, l_tot,
-                                       self.abv_bool, use_pitman_yor_process=True)
+            ranked_docs = lm.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N,
+                                  self.doc_sizes, l_tot,
+                                  self.abv_bool, use_pitman_yor_process=True)
         else:
             ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
                                        self.abv_bool, use_pitman_yor_process=True)
@@ -223,7 +214,8 @@ class RetrievalExecution:
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
             elif self.boolean_search:
-                ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N, self.positions_with_parentheses)
+                ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N,
+                                                       self.positions_with_parentheses)
                 ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
