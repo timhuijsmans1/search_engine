@@ -33,7 +33,7 @@ class RetrievalExecution:
     print("done loading all startup files")
 
     print("loading and compressing index")
-    encoded_index = index_compressor('retrieval/data/index.json')
+    encoded_index = index_compressor('retrieval/data/final_index.json')
     print(f"finished encoding")
 
     print("sizes in memory:")

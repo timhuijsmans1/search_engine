@@ -82,7 +82,7 @@ def index_compressor(index_path):
                 encoded_index[term] = bytestream
                 count += 1
     
-    print(total_size(encoded_index))
+    print("size is", total_size(encoded_index))
     print(count)
 
     return encoded_index
@@ -123,7 +123,7 @@ def decoder(encoded_index, query):
     return mini_index
 
 if __name__ == "__main__":
-    INDEX_PATH = "../output/index_and_index_hash/index_1.json"
-    COMPRESSED_INDEX_PATH = "../output/index_and_index_hash/compressed_index.json"
+    INDEX_PATH = "../output/index_and_index_hash/final_index.json"
+    index_compressor(INDEX_PATH)
 
     
