@@ -4,6 +4,7 @@ import datetime
 import sys
 import pandas as pd
 import csv
+import re
 
 from retrieval.models import Article
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
@@ -64,7 +65,15 @@ class RetrievalExecution:
         query, self.has_term_been_corrected, self.corrected_query = apply_spellchecking(query, self.abv_bool, self.phrase_bool)
 
         # pre process query
-        self.pre_processed_query = preprocessing.apply_preprocessing(query)
+        if not self.phrase_bool:
+            self.pre_processed_query = preprocessing.apply_preprocessing(query)
+
+        else:
+            self.pre_processed_query = []
+            phrases = re.findall(r'"(.*?)"', query)
+            for p in phrases:
+                self.pre_processed_query.append(preprocessing.apply_preprocessing(p))
+
         if self.abv_bool:
             self.pre_processed_abv_query = preprocessing.apply_preprocessing(self.query_abv)
 
@@ -109,7 +118,7 @@ class RetrievalExecution:
 
         start_time = datetime.datetime.now()
 
-        for word in self.pre_processed_query:
+        for word in sum(self.pre_processed_query, []):
             if word in self.inverted_index:
                 decoded_list = self.delta_decoder(self.inverted_index[word])
                 self.mini_index[word] = decoded_list

@@ -211,38 +211,39 @@ class Bm25_model:
 
     def phrase_rank(self, query, inv_ind, N, doc_size, l_tot, abbv_bool):
 
-        term_inverted_indexes = {}
-        documents_appearing_in = {}
-        tf = {}
-        df = 0
-        document_scores = {}
+        for phrase in query:
+            term_inverted_indexes = {}
+            documents_appearing_in = {}
+            tf = {}
+            df = 0
+            document_scores = {}
 
 
-        for term in query:
-            term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
-            if term_inverted_indexes[term]:
-                documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
+            for term in phrase:
+                term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
+                if term_inverted_indexes[term]:
+                    documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
 
-        intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+            intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
 
-        for doc in intersection_of_documents:
-            positional_index = []
-            for term in query:
-                positional_index.append(term_inverted_indexes[term][1][doc])
+            for doc in intersection_of_documents:
+                positional_index = []
+                for term in phrase:
+                    positional_index.append(term_inverted_indexes[term][1][doc])
 
-            cons_count = self.consecutive_occ(positional_index)
-            if cons_count > 0:
-                tf[doc] = cons_count
-                df += 1
+                cons_count = self.consecutive_occ(positional_index)
+                if cons_count > 0:
+                    tf[doc] = cons_count
+                    df += 1
 
 
-        if not intersection_of_documents:
-            return False
+            if not intersection_of_documents:
+                return False
 
-        for doc in intersection_of_documents:
+            for doc in intersection_of_documents:
 
-            if doc in tf.keys():
-                document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size, l_tot)
+                if doc in tf.keys():
+                    document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size, l_tot)
 
         if abbv_bool:
             return document_scores

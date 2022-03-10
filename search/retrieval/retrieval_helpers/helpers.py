@@ -142,7 +142,6 @@ def is_phrase_bool(query):
         return True
     return False
 
-
 def set_abv_bool_values(query, abv_dict):
     query_abv = ""
     abv_bool = False
