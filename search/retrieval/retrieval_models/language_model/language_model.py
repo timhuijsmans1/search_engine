@@ -77,32 +77,33 @@ class Language_model:
 
     def phrase_retrieval(self, query, mini_index, N, doc_sizes, length_collection, abbv_bool):
 
-        documents_appearing_in = {}
-        query = set(query)
-        tf = {}
-        df = 0
-        document_scores = {}
-        for term in query:
-            documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
+        for phrase in query:
+            documents_appearing_in = {}
+            phrase = set(phrase)
+            tf = {}
+            df = 0
+            document_scores = {}
+            for term in phrase:
+                documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
 
-        intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
-        for doc in intersection_of_documents:
-            positional_index = []
-            for term in query:
-                positional_index.append(mini_index[term][1][doc])  # term positions in the document
+            intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+            for doc in intersection_of_documents:
+                positional_index = []
+                for term in phrase:
+                    positional_index.append(mini_index[term][1][doc])  # term positions in the document
 
 
-            cons_count = self.consecutive_occ(positional_index)
-            if cons_count > 0:
-                tf[doc] = cons_count
-                df += 1  # total document frequency of the given phrase
-        if not intersection_of_documents:
-            return False
+                cons_count = self.consecutive_occ(positional_index)
+                if cons_count > 0:
+                    tf[doc] = cons_count
+                    df += 1  # total document frequency of the given phrase
+            if not intersection_of_documents:
+                return False
 
-        for doc in intersection_of_documents:
-            if doc in tf.keys():
-                document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
-                                                                           length_collection)
+            for doc in intersection_of_documents:
+                if doc in tf.keys():
+                    document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
+                                                                               length_collection)
 
         if abbv_bool:
             return document_scores
