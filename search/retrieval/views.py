@@ -21,7 +21,8 @@ def results(request):
 
     query = form_data.get('query')
     # validate category and query input, redirect back to home otherwise
-    if form_data.get('category') == None:
+    category = form_data.get('category')
+    if category == None:
         return redirect('retrieval:index')
     if query == None:
         return redirect('retrieval:index')
@@ -67,7 +68,11 @@ def results(request):
             'results': results,
             'term_been_corrected': has_term_been_corrected,
             'corrected_query': corrected_query,
-            'original_query': original_query
+            'original_query': original_query,
+            'date_start': date_start,
+            'date_end': date_end,
+            'category': category
+
         }
         return render(request, 'retrieval/results.html', context)
     else:
