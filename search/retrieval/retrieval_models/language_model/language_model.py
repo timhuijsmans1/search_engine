@@ -5,6 +5,7 @@ from functools import reduce
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
 from retrieval.retrieval_helpers.helpers import sort_document_scores
+from retrival.retrieval_helpers.helpers import consecutive_occ
 
 
 class Language_model:
@@ -93,7 +94,7 @@ class Language_model:
                     positional_index.append(mini_index[term][1][doc])  # term positions in the document
 
 
-                cons_count = self.consecutive_occ(positional_index)
+                cons_count = consecutive_occ(positional_index)
                 if cons_count > 0:
                     tf[doc] = cons_count
                     df += 1  # total document frequency of the given phrase
@@ -111,27 +112,6 @@ class Language_model:
         else:
             sorted_scores = sort_document_scores(document_scores)
             return sorted_scores
-
-    def consecutive_occ(self, inverted_index_doc):
-
-        tot = len(inverted_index_doc)
-        tot_app = sorted(sum(inverted_index_doc, []))  # Main Assumption that one word is not occurring twice in a row
-        # Tot app returns the sorted list of document positions
-
-        count = 0
-        consecutive = 0
-
-        for i in range(len(tot_app) - 1):
-            if (tot_app[i + 1] - tot_app[i]) == 1:
-                for t in range(tot - 1):
-                    if tot_app[i] in inverted_index_doc[t] and tot_app[i + 1] in inverted_index_doc[t + 1]:
-                        count += 1
-                        if count == (tot - 1):
-                            consecutive += 1
-                            count = 0
-            else:
-                count = 0
-        return consecutive
 
 
     def retrieval(self, query, mini_index, N, doc_sizes, l_tot, abbv_bool, use_pitman_yor_process):

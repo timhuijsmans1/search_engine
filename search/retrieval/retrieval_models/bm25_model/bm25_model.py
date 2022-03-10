@@ -9,6 +9,7 @@ import time
 
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import sort_document_scores
+from retrival.retrieval_helpers.helpers import consecutive_occ
 
 
 class Bm25_model:
@@ -61,28 +62,6 @@ class Bm25_model:
             for k in inverted_index_term.keys():
                 documents_term_appears_in.append(k)
         return documents_term_appears_in
-
-    def consecutive_occ(self, inverted_index_doc):
-
-        tot = len(inverted_index_doc)
-        tot_app = sorted(sum(inverted_index_doc, [])) # Main Assumption that one word is not occurring twice in a row
-        count = 0
-        consecutive = 0
-
-        for i in range(len(tot_app)-1):
-            if (tot_app[i+1] - tot_app[i]) == 1:
-                for t in range(tot - 1):
-                    if tot_app[i] in inverted_index_doc[t] and tot_app[i+1] in inverted_index_doc[t+1]:
-                        count += 1
-                        if count == (tot - 1):
-                            consecutive += 1
-                            count = 0
-
-            else:
-                count = 0
-
-        return consecutive
-
 
     # def abbv(self, query, abbv_query, inv_ind, N, doc_size, l_tot):
     #
@@ -231,7 +210,7 @@ class Bm25_model:
                 for term in phrase:
                     positional_index.append(term_inverted_indexes[term][1][doc])
 
-                cons_count = self.consecutive_occ(positional_index)
+                cons_count = consecutive_occ(positional_index)
                 if cons_count > 0:
                     tf[doc] = cons_count
                     df += 1
