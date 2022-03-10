@@ -118,10 +118,14 @@ class RetrievalExecution:
 
         start_time = datetime.datetime.now()
 
-        for word in sum(self.pre_processed_query, []):
-            if word in self.inverted_index:
-                decoded_list = self.delta_decoder(self.inverted_index[word])
-                self.mini_index[word] = decoded_list
+        for entry in self.pre_processed_query:
+            if type(entry) is str:
+                decoded_list = self.delta_decoder(self.inverted_index[entry])
+                self.mini_index[entry] = decoded_list
+            elif type(entry) is list:
+                for term in entry:
+                    decoded_list = self.delta_decoder(self.inverted_index[term])
+                    self.mini_index[term] = decoded_list
 
         if self.abv_bool:
             for word in self.pre_processed_abv_query:
@@ -224,7 +228,7 @@ class RetrievalExecution:
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
             elif self.boolean_search:
                 ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N,
-                                                       self.positions_with_parentheses)
+                                                       self.positions_with_parentheses, self.pre_processed_query)
                 ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query

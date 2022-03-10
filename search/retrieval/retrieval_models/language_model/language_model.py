@@ -5,7 +5,7 @@ from functools import reduce
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
 from retrieval.retrieval_helpers.helpers import sort_document_scores
-from retrival.retrieval_helpers.helpers import consecutive_occ
+from retrieval.retrieval_helpers.helpers import consecutive_occ
 
 
 class Language_model:

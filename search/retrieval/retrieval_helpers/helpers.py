@@ -69,7 +69,7 @@ def extract_all_documents_term_appears_in(mini_index_term):
         documents_term_appears_in.append(k)
     return documents_term_appears_in
 
-def consecutive_occ(self, inverted_index_doc):
+def consecutive_occ(inverted_index_doc):
 
     tot = len(inverted_index_doc)
     tot_app = sorted(sum(inverted_index_doc, []))  # Main Assumption that one word is not occurring twice in a row

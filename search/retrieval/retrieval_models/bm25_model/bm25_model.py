@@ -9,7 +9,7 @@ import time
 
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import sort_document_scores
-from retrival.retrieval_helpers.helpers import consecutive_occ
+from retrieval.retrieval_helpers.helpers import consecutive_occ
 
 
 class Bm25_model:
