@@ -69,6 +69,6 @@ if __name__ == "__main__":
     INDEX_PATH = "../output/index_and_index_hash/"
 
     HASH_NAME = "word2byte.json"
-    INDEX_NAME = "index.json"
+    INDEX_NAME = "index_1.json"
 
     index_hasher(os.path.join(INDEX_PATH, INDEX_NAME), os.path.join(INDEX_PATH, HASH_NAME))

@@ -17,7 +17,9 @@ def index(request):
     return render(request, 'retrieval/index.html', context)
 
 def results(request):
-    form_data = value = request.GET
+    first_execution_run = True
+
+    form_data = request.GET
 
     query = form_data.get('query')
     category = form_data.get('category')
@@ -34,7 +36,8 @@ def results(request):
     # init retrieval object
     retrieval_execution = RetrievalExecution(
                         query,
-                        1000 # change the hardcoded document number accordingly
+                        1000, # change the hardcoded document number accordingly,
+                        first_execution_run
     )
 
     # if advanced data search is not switched on, dates are None
@@ -48,7 +51,7 @@ def results(request):
             ranked_article_objects, has_term_been_corrected, query = retrieval_execution.execute_ranking(
                            "bm25",
                            start_date_obj,
-                           end_date_obj
+                           end_date_obj,
             )
 
     # this is executed only if date_start and date_end are None
@@ -56,7 +59,7 @@ def results(request):
         ranked_article_objects, has_term_been_corrected, corrected_query, original_query = retrieval_execution.execute_ranking(
                            "bm25",
                            date_start,
-                           date_end
+                           date_end,
         )
 
     # Only return results if relevant documents are found
@@ -72,6 +75,38 @@ def results(request):
             'start_of_date_range': date_start,
             'end_of_date_range': date_end,
             'document_category': category
+        }
+        return render(request, 'retrieval/results.html', context)
+    else:
+        return redirect('retrieval:index')
+
+def rerun_results(request, category, query, date_start, date_end):
+    first_execution_run = False
+
+    retrieval_execution = RetrievalExecution(query, 1000, first_execution_run)
+
+    # check if the dates have an actual value
+    if date_start == "None" and date_end == "None":
+        date_start = date_end = None
+        ranked_article_objects, has_term_been_corrected, corrected_query, original_query = retrieval_execution.execute_ranking(
+                           "bm25",
+                           date_start,
+                           date_end,
+        )
+    # date filter search
+    else:
+        pass
+        # TODO
+        # turn stringified datetimes into datetime objects and execute datetime search
+
+    # Only return results if relevant documents are found
+    if ranked_article_objects:
+        # query DB with docnumbers
+        results = list(ranked_article_objects.values())
+
+        context = {
+            'results': results,
+            'term_been_corrected': False,
         }
         return render(request, 'retrieval/results.html', context)
     else:
