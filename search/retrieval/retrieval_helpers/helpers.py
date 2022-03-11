@@ -165,15 +165,13 @@ def is_phrase_bool(query):
         return True
     return False
 
-def set_abv_bool_values(query, abv_dict):
-    query_abv = ""
-    abv_bool = False
+def add_abv_expansion(query, abv_dict):
+
     for t in query.split():
         abv_dict_keys = [i.rstrip() for i in abv_dict.keys()]
         if t.upper() in abv_dict_keys:
-            query_abv = abv_dict[t.upper()]
-            abv_bool = True
-    return query_abv, abv_bool
+            query += (f' "{abv_dict[t.upper()]}"')
+    return query
 
 
 def set_proximity_values(query, preprocessor):

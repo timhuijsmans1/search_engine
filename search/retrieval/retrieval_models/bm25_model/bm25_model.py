@@ -21,6 +21,7 @@ class Bm25_model:
         l_tot = len_tot
         l_avg = l_a
         k = 1.5
+        w_t_d = 1
 
         if term in positional_inverted_index.keys():
             if document not in positional_inverted_index[term][1].keys():
@@ -129,11 +130,48 @@ class Bm25_model:
     #     return sorted_document_scores
 
 
-    def abbv(self, query, abbv_query, inv_ind, N, doc_size, l_tot, abbv_bool):
+    # def abbv(self, query, abbv_query, inv_ind, N, doc_size, l_tot, abbv_bool):
+    #
+    #     tot_docs = {}
+    #     t_docs = self.rank(query, inv_ind, N, doc_size, l_tot, abbv_bool)
+    #     p_docs = self.phrase_rank(abbv_query, inv_ind, N, doc_size, l_tot, abbv_bool)
+    #
+    #     if t_docs and p_docs:
+    #         tot_keys = set(list(t_docs.keys()) + list(p_docs.keys()))
+    #         for k in tot_keys:
+    #             tot_docs[k] = t_docs.get(k, 0) + p_docs.get(k, 0)
+    #     elif t_docs:
+    #         tot_docs = t_docs
+    #     elif p_docs:
+    #         tot_docs = p_docs
+    #
+    #     sorted_docs = sort_document_scores(tot_docs)
+    #     return sorted_docs
 
+    def retrieval(self, query, inv_ind, N, doc_size, l_tot):
+
+        start = time.time()
+        query_updated = []
+
+        for i, t in enumerate(query):
+            if len(query[i]) > 0:
+                query_updated.append(query[i])
+
+        singles = []
+        phrases = []
+        t_docs = []
+        p_docs = []
+        for term in query_updated:
+            if len(term) == 1:
+                singles.append(term[0])
+            else:
+                phrases.append(term)
         tot_docs = {}
-        t_docs = self.rank(query, inv_ind, N, doc_size, l_tot, abbv_bool)
-        p_docs = self.phrase_rank(abbv_query, inv_ind, N, doc_size, l_tot, abbv_bool)
+        if singles:
+            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot)
+        if phrases:
+            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot)
+
 
         if t_docs and p_docs:
             tot_keys = set(list(t_docs.keys()) + list(p_docs.keys()))
@@ -145,9 +183,12 @@ class Bm25_model:
             tot_docs = p_docs
 
         sorted_docs = sort_document_scores(tot_docs)
+        end = time.time()
+        print(end - start)
         return sorted_docs
 
-    def rank(self, query, inv_ind, N, doc_size, l_tot, abbv_bool):
+    def rank(self, query, inv_ind, N, doc_size, l_tot):
+
 
         term_inverted_indexes = {}
         documents_appearing_in = {}
@@ -181,22 +222,21 @@ class Bm25_model:
 
             document_scores[document] = score
 
-        if abbv_bool:
-            return document_scores
 
-        else:
-            sorted_scores = sort_document_scores(document_scores)
-            return sorted_scores
+        return document_scores
 
-    def phrase_rank(self, query, inv_ind, N, doc_size, l_tot, abbv_bool):
+        # else:
+        #     sorted_scores = sort_document_scores(document_scores)
+        #     return sorted_scores
 
+    def phrase_rank(self, query, inv_ind, N, doc_size, l_tot):
+
+        document_scores = {}
         for phrase in query:
             term_inverted_indexes = {}
             documents_appearing_in = {}
             tf = {}
             df = 0
-            document_scores = {}
-
 
             for term in phrase:
                 term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
@@ -222,44 +262,15 @@ class Bm25_model:
             for doc in intersection_of_documents:
 
                 if doc in tf.keys():
-                    document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size, l_tot)
-
-        if abbv_bool:
-            return document_scores
-
-        else:
-            sorted_scores = sort_document_scores(document_scores)
-            return sorted_scores
+                    if doc in document_scores.keys():
+                        document_scores[doc] += self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size, l_tot)
+                    else:
+                        document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size,
+                                                                                    l_tot)
 
 
-if __name__ == '__main__':
-    preprocessor = Preprocessing()
-    Bm25_model = Bm25_model()
-    phrase_bool = False
+        return document_scores
 
-    with open('inverted_index.json') as results:
-        with open('content_length.json') as docs:
-            inv_ind = json.load(results)
-            doc_size = json.load(docs)
-
-    query = input("Enter query: ")
-    if '"' in query:
-        phrase_bool = True
-        query = re.sub(r'[^\w]', ' ', query)
-        query = preprocessor.preprocess_query(query)
-        del query[0]
-        del query[-1]
-    else:
-        query = preprocessor.preprocess_query(query)
-
-    if phrase_bool:
-        phrase_query_results_dict = {}
-        N = len(doc_size.keys())
-        phrase_query_results_dict = Bm25_model.phrase_rank(query, inv_ind, N, doc_size)
-        print(phrase_query_results_dict)
-
-    else:
-        query_results_dict = {}
-        N = len(doc_size.keys())
-        query_results_dict = Bm25_model.rank(query, inv_ind, N, doc_size)
-        print(query_results_dict)
+        # else:
+        #     sorted_scores = sort_document_scores(document_scores)
+        #     return sorted_scores
