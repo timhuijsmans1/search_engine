@@ -5,7 +5,7 @@ from functools import reduce
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
 from retrieval.retrieval_helpers.helpers import sort_document_scores
-from retrival.retrieval_helpers.helpers import consecutive_occ
+from retrieval.retrieval_helpers.helpers import consecutive_occ
 
 
 class Language_model:
@@ -58,11 +58,22 @@ class Language_model:
         w_p_d = math.log((tf / self.miu) * (L_c / cf) + 1)
         return w_p_d
 
-    def abbv(self, query, abbv_query, inv_ind, N, doc_size, l_tot, abbv_bool, use_pitman_yor_process):
+    def retrieval(self, query, inv_ind, N, doc_size, l_tot, use_pitman_yor_process):
 
+        singles = []
+        phrases = []
+        t_docs = []
+        p_docs = []
+        for term in query:
+            if len(term) == 1:
+                singles.append(term[0])
+            else:
+                phrases.append(term)
         tot_docs = {}
-        t_docs = self.retrieval(query, inv_ind, N, doc_size, l_tot, abbv_bool, use_pitman_yor_process)
-        p_docs = self.phrase_retrieval(abbv_query, inv_ind, N, doc_size, l_tot, abbv_bool)
+        if singles:
+            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot, use_pitman_yor_process)
+        if phrases:
+            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot)
 
         if t_docs and p_docs:
             tot_keys = set(list(t_docs.keys()) + list(p_docs.keys()))
@@ -76,14 +87,14 @@ class Language_model:
         sorted_docs = sort_document_scores(tot_docs)
         return sorted_docs
 
-    def phrase_retrieval(self, query, mini_index, N, doc_sizes, length_collection, abbv_bool):
+    def phrase_rank(self, query, mini_index, N, doc_sizes, length_collection):
 
+        document_scores = {}
         for phrase in query:
             documents_appearing_in = {}
             phrase = set(phrase)
             tf = {}
             df = 0
-            document_scores = {}
             for term in phrase:
                 documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
 
@@ -102,19 +113,18 @@ class Language_model:
                 return False
 
             for doc in intersection_of_documents:
+
                 if doc in tf.keys():
-                    document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
+                    if doc in document_scores.keys():
+                        document_scores[doc] += self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
                                                                                length_collection)
+                    else:
+                        document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
+                                                                                    length_collection)
 
-        if abbv_bool:
-            return document_scores
+        return document_scores
 
-        else:
-            sorted_scores = sort_document_scores(document_scores)
-            return sorted_scores
-
-
-    def retrieval(self, query, mini_index, N, doc_sizes, l_tot, abbv_bool, use_pitman_yor_process):
+    def rank(self, query, mini_index, N, doc_sizes, l_tot, use_pitman_yor_process):
         documents_appearing_in = {}
         query_term_frequency = {}
         union_of_documents = []
@@ -153,12 +163,7 @@ class Language_model:
             document_scores[document] = final_score
         ## TO DO - Here find score with exactly equal values - or within 10% range - should be duplicates so only keep one
 
-        if abbv_bool:
-            return document_scores
-
-        else:
-            sorted_scores = sort_document_scores(document_scores)
-            return sorted_scores
+        return document_scores
 
 
 if __name__ == '__main__':

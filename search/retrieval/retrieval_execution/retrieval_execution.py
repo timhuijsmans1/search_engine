@@ -1,4 +1,6 @@
 import json
+import time
+
 import numpy as np
 import datetime
 import sys
@@ -13,7 +15,7 @@ from retrieval.retrieval_helpers.helpers import spellcheck_query
 from retrieval.retrieval_helpers.helpers import is_proximity_query
 from retrieval.retrieval_helpers.helpers import find_boolean_operators
 from retrieval.retrieval_helpers.helpers import is_phrase_bool
-from retrieval.retrieval_helpers.helpers import set_abv_bool_values
+from retrieval.retrieval_helpers.helpers import add_abv_expansion
 from retrieval.retrieval_helpers.helpers import set_proximity_values
 from retrieval.retrieval_helpers.helpers import prepare_boolean_query
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
@@ -51,6 +53,7 @@ class RetrievalExecution:
     ):
 
         preprocessing = Preprocessing()
+        query = add_abv_expansion(query, self.abv_dict)
         self.set_initial_values(total_doc_number, query)  # assigning all initial values outside to keep this clean
 
         if is_proximity_query(query):
@@ -62,21 +65,24 @@ class RetrievalExecution:
             self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
             return
 
-        query, self.has_term_been_corrected, self.corrected_query = apply_spellchecking(query, self.abv_bool, self.phrase_bool)
+        # query, self.has_term_been_corrected, self.corrected_query = apply_spellchecking(query, self.abv_bool, self.phrase_bool)
 
         # pre process query
+        self.pre_processed_query = []
+
         if not self.phrase_bool:
-            self.pre_processed_query = preprocessing.apply_preprocessing(query)
-
+            for q in query.split():
+                self.pre_processed_query.append(preprocessing.apply_preprocessing(q))
         else:
-            self.pre_processed_query = []
-            phrases = re.findall(r'"(.*?)"', query)
-            for p in phrases:
+            r = r'"(.*?)"'
+            if re.split(r, query):
+                terms = re.findall(r, query) + re.sub(r, '', query).split()
+                terms = [i.strip() for i in terms if i]
+                terms = list(filter(None, terms))
+            else:
+                terms = re.findall(r, query)
+            for p in terms:
                 self.pre_processed_query.append(preprocessing.apply_preprocessing(p))
-
-        if self.abv_bool:
-            self.pre_processed_abv_query = preprocessing.apply_preprocessing(self.query_abv)
-
         return
 
     def set_initial_values(self, total_doc_number, query):
@@ -86,9 +92,7 @@ class RetrievalExecution:
         self.proximity_query = False
         self.boolean_search = False
         self.N = total_doc_number
-        self.abv_bool = False
         self.phrase_bool = is_phrase_bool(query)
-        self.query_abv, self.abv_bool = set_abv_bool_values(query, self.abv_dict)
 
     def delta_decoder(self, delta_encoded_inverted_list):
         """
@@ -118,16 +122,12 @@ class RetrievalExecution:
 
         start_time = datetime.datetime.now()
 
+
         for word in sum(self.pre_processed_query, []):
+
             if word in self.inverted_index:
                 decoded_list = self.delta_decoder(self.inverted_index[word])
                 self.mini_index[word] = decoded_list
-
-        if self.abv_bool:
-            for word in self.pre_processed_abv_query:
-                if word in self.inverted_index:
-                    decoded_list = self.delta_decoder(self.inverted_index[word])
-                    self.mini_index[word] = decoded_list
 
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
 
@@ -164,19 +164,10 @@ class RetrievalExecution:
 
         bm25 = Bm25_model()
 
-        print(self.abv_bool)
-
         self.l_tot = sum(list(self.doc_sizes.values()))
 
-        if self.phrase_bool:
-            ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes,
-                                           self.l_tot, self.abv_bool)
-        elif self.abv_bool:
-            ranked_docs = bm25.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N,
-                                    self.doc_sizes, self.l_tot, self.abv_bool)
-        else:
-            ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
-                                    self.abv_bool)
+        ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot
+                                      )
 
         return ranked_docs
 
@@ -189,17 +180,20 @@ class RetrievalExecution:
         lm = Language_model(miu=1303, g=0.2)
         l_tot = sum(list(self.doc_sizes.values()))
 
-        if self.phrase_bool:
-            ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
-                                              self.abv_bool)
+        # if self.phrase_bool:
+        #     ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
+        #                                       self.abv_bool)
+        #
+        # elif self.abv_bool:
+        #     ranked_docs = lm.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N,
+        #                           self.doc_sizes, l_tot,
+        #                           self.abv_bool, use_pitman_yor_process=True)
+        # else:
+        #     ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
+        #                                self.abv_bool, use_pitman_yor_process=True)
 
-        elif self.abv_bool:
-            ranked_docs = lm.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N,
-                                  self.doc_sizes, l_tot,
-                                  self.abv_bool, use_pitman_yor_process=True)
-        else:
-            ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
-                                       self.abv_bool, use_pitman_yor_process=True)
+        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
+                                   use_pitman_yor_process=True)
         return ranked_docs
 
     def execute_ranking(self, used_model, start_date, end_date):

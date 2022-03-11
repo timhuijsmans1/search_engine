@@ -69,7 +69,7 @@ def extract_all_documents_term_appears_in(mini_index_term):
         documents_term_appears_in.append(k)
     return documents_term_appears_in
 
-def consecutive_occ(self, inverted_index_doc):
+def consecutive_occ(inverted_index_doc):
 
     tot = len(inverted_index_doc)
     tot_app = sorted(sum(inverted_index_doc, []))  # Main Assumption that one word is not occurring twice in a row
@@ -165,15 +165,13 @@ def is_phrase_bool(query):
         return True
     return False
 
-def set_abv_bool_values(query, abv_dict):
-    query_abv = ""
-    abv_bool = False
+def add_abv_expansion(query, abv_dict):
+
     for t in query.split():
         abv_dict_keys = [i.rstrip() for i in abv_dict.keys()]
         if t.upper() in abv_dict_keys:
-            query_abv = abv_dict[t.upper()]
-            abv_bool = True
-    return query_abv, abv_bool
+            query += (f' "{abv_dict[t.upper()]}"')
+    return query
 
 
 def set_proximity_values(query, preprocessor):
