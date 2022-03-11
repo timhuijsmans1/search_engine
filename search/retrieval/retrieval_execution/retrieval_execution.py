@@ -129,7 +129,7 @@ class RetrievalExecution:
 
     def database_retrieval(self, doc_numbers):
         print("retrieving from db")
-        return {doc_no: TestArticle.objects.get(document_id=doc_no) for doc_no in doc_numbers[:1]}
+        return {doc_no: TestArticle.objects.get(pk=doc_no) for doc_no in doc_numbers}
 
     def valid_index(self):
         """
