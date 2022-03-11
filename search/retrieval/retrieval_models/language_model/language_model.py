@@ -5,6 +5,7 @@ from functools import reduce
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
 from retrieval.retrieval_helpers.helpers import sort_document_scores
+from retrieval.retrieval_helpers.helpers import consecutive_occ
 
 
 class Language_model:
@@ -57,66 +58,86 @@ class Language_model:
         w_p_d = math.log((tf / self.miu) * (L_c / cf) + 1)
         return w_p_d
 
-    def phrase_retrieval(self, query, mini_index, N, doc_sizes, length_collection):
+    def retrieval(self, query, inv_ind, N, doc_size, l_tot, use_pitman_yor_process):
 
-        documents_appearing_in = {}
-        query = set(query)
-        tf = {}
-        df = 0
-        document_scores = {}
+        singles = []
+        phrases = []
+        t_docs = []
+        p_docs = []
         for term in query:
-            documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
-        intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
-        for doc in intersection_of_documents:
-            positional_index = []
-            for term in query:
-                positional_index.append(mini_index[term][1][doc])  # term positions in the document
-
-
-            cons_count = self.consecutive_occ(positional_index)
-            if cons_count > 0:
-                tf[doc] = cons_count
-                df += 1  # total document frequency of the given phrase
-        if not intersection_of_documents:
-            return False
-
-        for doc in intersection_of_documents:
-            if doc in tf.keys():
-                document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
-                                                                           length_collection)
-
-        sorted_document_ids = sort_document_scores(document_scores)
-        return sorted_document_ids
-
-    def consecutive_occ(self, inverted_index_doc):
-
-        tot = len(inverted_index_doc)
-        tot_app = sorted(sum(inverted_index_doc, []))  # Main Assumption that one word is not occurring twice in a row
-        # Tot app returns the sorted list of document positions
-
-        count = 0
-        consecutive = 0
-
-        for i in range(len(tot_app) - 1):
-            if (tot_app[i + 1] - tot_app[i]) == 1:
-                for t in range(tot - 1):
-                    if tot_app[i] in inverted_index_doc[t] and tot_app[i + 1] in inverted_index_doc[t + 1]:
-                        count += 1
-                        if count == (tot - 1):
-                            consecutive += 1
-                            count = 0
+            if len(term) == 1:
+                singles.append(term[0])
             else:
-                count = 0
-        return consecutive
+                phrases.append(term)
+        tot_docs = {}
+        if singles:
+            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot, use_pitman_yor_process)
+        if phrases:
+            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot)
 
-    def retrieval(self, query, mini_index, N, doc_sizes, l_tot, use_pitman_yor_process):
+        if t_docs and p_docs:
+            tot_keys = set(list(t_docs.keys()) + list(p_docs.keys()))
+            for k in tot_keys:
+                tot_docs[k] = t_docs.get(k, 0) + p_docs.get(k, 0)
+        elif t_docs:
+            tot_docs = t_docs
+        elif p_docs:
+            tot_docs = p_docs
+
+        sorted_docs = sort_document_scores(tot_docs)
+        return sorted_docs
+
+    def phrase_rank(self, query, mini_index, N, doc_sizes, length_collection):
+
+        document_scores = {}
+        for phrase in query:
+            documents_appearing_in = {}
+            phrase = set(phrase)
+            tf = {}
+            df = 0
+            for term in phrase:
+                documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
+
+            intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+            for doc in intersection_of_documents:
+                positional_index = []
+                for term in phrase:
+                    positional_index.append(mini_index[term][1][doc])  # term positions in the document
+
+
+                cons_count = consecutive_occ(positional_index)
+                if cons_count > 0:
+                    tf[doc] = cons_count
+                    df += 1  # total document frequency of the given phrase
+            if not intersection_of_documents:
+                return False
+
+            for doc in intersection_of_documents:
+
+                if doc in tf.keys():
+                    if doc in document_scores.keys():
+                        document_scores[doc] += self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
+                                                                               length_collection)
+                    else:
+                        document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_sizes,
+                                                                                    length_collection)
+
+        return document_scores
+
+    def rank(self, query, mini_index, N, doc_sizes, l_tot, use_pitman_yor_process):
+
         documents_appearing_in = {}
         query_term_frequency = {}
-        for term in query:
-            documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
-            query_term_frequency[term] = query.count(term)  # doing this here so we do not repeat it for each document
+        union_of_documents = []
 
-        union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+        for term in query:
+            if term in mini_index.keys():
+                documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
+                query_term_frequency[term] = query.count(
+                    term)  # doing this here so we do not repeat it for each document
+
+        if documents_appearing_in:
+            union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
         length_collection = l_tot  # length of the collection in terms
         # g = self.g  # discounting parameter - as used in paper "Improvements to BM25 and Language Model examined - used for pyp implementation
         length_query = len(query)  # length of the query
@@ -124,16 +145,18 @@ class Language_model:
         for document in union_of_documents:
             score = 0
             for term in query:
-                if use_pitman_yor_process:
-                    w_t_d = self.compute_weight_term_document_pyp(query_term_frequency[term], term, mini_index,
-                                                                  document, length_collection)
-                    score += w_t_d
-                else:  # use lm-dirichlet smoothing
-                    self.miu = 1089  # Different value identified in the paper compared to those used when
-                    # pitman_yor_process is used
-                    w_t_d = self.compute_weight_term_document(query_term_frequency[term], term, mini_index, document,
-                                                              length_collection)
-                    score += w_t_d
+                if term in mini_index.keys():
+                    if use_pitman_yor_process:
+                        w_t_d = self.compute_weight_term_document_pyp(query_term_frequency[term], term, mini_index,
+                                                                      document, length_collection)
+                        score += w_t_d
+                    else:  # use lm-dirichlet smoothing
+                        self.miu = 1089  # Different value identified in the paper compared to those used when
+                        # pitman_yor_process is used
+                        w_t_d = self.compute_weight_term_document(query_term_frequency[term], term, mini_index,
+                                                                  document,
+                                                                  length_collection)
+                        score += w_t_d
             L_d = doc_sizes[str(document)]
             if use_pitman_yor_process:
                 dicsounted_l_d = max((L_d - self.g * (L_d ** self.g)), 0)
@@ -141,9 +164,38 @@ class Language_model:
             else:
                 final_score = length_query * math.log(self.miu / (L_d + self.miu)) + score
             document_scores[document] = final_score
-        sorted_document_ids = sort_document_scores(document_scores)
         ## TO DO - Here find score with exactly equal values - or within 10% range - should be duplicates so only keep one
-        return sorted_document_ids
+
+        return document_scores
+
+
+    # def assign_scores(self, union_of_documents, query, mini_index, use_pitman_yor_process, query_term_frequency, length_collection, doc_sizes, abbv_bool):
+    #     document_scores = {}
+    #     length_query = len(query)
+    #     for document in union_of_documents:
+    #         score = 0
+    #         for term in query:
+    #             if term in mini_index.keys():
+    #                 if use_pitman_yor_process:
+    #                     w_t_d = self.compute_weight_term_document_pyp(query_term_frequency[term], term, mini_index,
+    #                                                                   document, length_collection)
+    #                     score += w_t_d
+    #                 else:  # use lm-dirichlet smoothing
+    #                     self.miu = 1089  # Different value identified in the paper compared to those used when
+    #                     # pitman_yor_process is used
+    #                     w_t_d = self.compute_weight_term_document(query_term_frequency[term], term, mini_index, document,
+    #                                                               length_collection)
+    #                     score += w_t_d
+    #         L_d = doc_sizes[str(document)]
+    #         if use_pitman_yor_process:
+    #             dicsounted_l_d = max((L_d - self.g * (L_d ** self.g)), 0)
+    #             final_score = length_query * math.log(1 - (dicsounted_l_d / (L_d + self.miu))) + score
+    #         else:
+    #             final_score = length_query * math.log(self.miu / (L_d + self.miu)) + score
+    #         document_scores[document] = final_score
+    #     ## TO DO - Here find score with exactly equal values - or within 10% range - should be duplicates so only keep one
+    #
+    #     return document_scores
 
 
 if __name__ == '__main__':

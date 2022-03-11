@@ -2,6 +2,7 @@ import re
 
 from nltk.stem import PorterStemmer
 from retrieval.retrieval_helpers.helpers import read_text_file
+from retrieval.retrieval_helpers.helpers import is_phrase_bool
 #from search.retrieval.retrieval_helpers.helpers import read_text_file  # - used for testing on Vlad's machine
 
 
@@ -66,13 +67,26 @@ class Preprocessing:
         position_with_parantheses = []
         terms = []
         i = 0  # keeping track of position of query term
+        identified_start_of_phrase = False
         for term in query.split():
             if term not in boolean_operators:
                 if '(' in term:
                     position_with_parantheses.append(i)
-                term = re.sub('[^a-zA-Z]+', '', term)
-                term = self.stemmer.stem(term)
-                terms.append(term)
+                if is_phrase_bool(term) and not identified_start_of_phrase:  # does this have quotes in it and first time we see it?
+                    phrase = []
+                    identified_start_of_phrase = True
+                    term = self.clean_term(term)
+                    phrase.append(term)
+                elif identified_start_of_phrase:
+                    if is_phrase_bool(term):
+                        identified_start_of_phrase = False
+                    term = self.clean_term(term)
+                    phrase.append(term)
+                    if not identified_start_of_phrase:
+                        terms.append(phrase)
+                else:
+                    term = self.clean_term(term)
+                    terms.append(term)
                 i+=1
         return terms, boolean_operators, position_with_parantheses
 
@@ -86,3 +100,9 @@ class Preprocessing:
         file = self.remove_stopwords(file)
         file = self.apply_stemming(file)
         return file
+
+
+    def clean_term(self, term):
+        term = re.sub('[^a-zA-Z]+', '', term)
+        term = self.stemmer.stem(term)
+        return term

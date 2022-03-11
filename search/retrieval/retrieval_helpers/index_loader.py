@@ -17,8 +17,8 @@ def load_mini_index(word_list, index_path, word2byte):
     with open(index_path, 'r') as f:
 
         # only load and decode the index of each word once
-        for word in set(word_list):
-            try: # if query word is in our vocabulary
+        for word in set(sum(word_list, [])):
+            try:  # if query word is in our vocabulary
                 start_byte = word2byte[word][0]
                 bytes_to_read = word2byte[word][1]
 

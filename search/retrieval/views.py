@@ -50,15 +50,15 @@ def results(request):
             ranked_article_objects, has_term_been_corrected, query = retrieval_execution.execute_ranking(
                            "bm25",
                            start_date_obj,
-                           end_date_obj,
+                           end_date_obj
             )
 
     # this is executed only if date_start and date_end are None
     else:
         ranked_article_objects, has_term_been_corrected, corrected_query, original_query = retrieval_execution.execute_ranking(
-                           "bm25",
+                           'bm25',
                            date_start,
-                           date_end,
+                           date_end
         )
 
     # Only return results if relevant documents are found
@@ -112,7 +112,7 @@ def rerun_results(request, category, query, date_start, date_end):
         return redirect('retrieval:index')
 
 def article_detail(request, document_id):
-    article = get_object_or_404(TestArticle, document_id=document_id)
+    article = get_object_or_404(TestArticle, pk=document_id)
 
     context = {
         'article': article,

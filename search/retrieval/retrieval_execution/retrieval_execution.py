@@ -1,9 +1,12 @@
 import json
+import time
+
 import numpy as np
 import datetime
 import sys
 import pandas as pd
 import csv
+import re
 
 from retrieval.models import TestArticle
 from retrieval.retrieval_helpers.index_loader import load_mini_index
@@ -13,9 +16,15 @@ from retrieval.retrieval_helpers.helpers import abv_loader
 from retrieval.retrieval_helpers.helpers import spellcheck_query
 from retrieval.retrieval_helpers.helpers import is_proximity_query
 from retrieval.retrieval_helpers.helpers import find_boolean_operators
+from retrieval.retrieval_helpers.helpers import is_phrase_bool
+from retrieval.retrieval_helpers.helpers import add_abv_expansion
+from retrieval.retrieval_helpers.helpers import set_proximity_values
+from retrieval.retrieval_helpers.helpers import prepare_boolean_query
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 from retrieval.retrieval_helpers.helpers import json_loader
+from retrieval.retrieval_helpers.helpers import apply_spellchecking
+
 from retrieval.retrieval_helpers.helpers import date2doc_initializer
 from retrieval.retrieval_models.language_model.language_model import Language_model
 from retrieval.retrieval_models.proximity_retrieval.proximity_retrieval import proximity_retrieval
@@ -25,7 +34,7 @@ from retrieval.retrieval_helpers.index_decoder import *
 
 
 class RetrievalExecution:
-    
+
     print("loading in search dictionaries")
     word2byte = json_loader("retrieval/data/word2byte.json")
     date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
@@ -38,8 +47,17 @@ class RetrievalExecution:
     print(f"date2doc size: {total_size(date2doc) / 1000000} mb")
     print(f"doc_sizes size: {total_size(doc_sizes) / 1000000} mb")
     print(f"word2byte size: {total_size(word2byte) / 1000000} mb")
+<<<<<<< HEAD
     
     abv_dict = abv_loader()
+=======
+
+    abv_dict = {}
+    with open("retrieval/data/Fin_abbv.csv", 'r') as fin_abbv:
+        abbv_temp = csv.reader(fin_abbv)
+        for a, m in abbv_temp:
+            abv_dict[a] = m
+>>>>>>> 7c71fe7f3be66d9da708d5332a99fbe88d71bfeb
 
     def __init__(
             self,
@@ -48,57 +66,53 @@ class RetrievalExecution:
     ):
 
         preprocessing = Preprocessing()
-        self.initial_query = query
-        self.has_term_been_corrected = False
-        self.corrected_query = ""
 
-        self.N = len(self.doc_sizes.keys())
+        self.set_initial_values(query)
+
         self.abv_bool = False
-        if '"' in query:
-            self.phrase_bool = True
-        else:
-            self.phrase_bool = False
 
-        for t in query.split():
-            self.abv_dict_keys = [i.strip() for i in self.abv_dict.keys()]
-            if t.upper() in self.abv_dict_keys:
-                self.query_abv = self.abv_dict[t.upper()]
-                self.abv_bool = True
-
-        # if not self.abv_bool:
-        #     query = spellcheck_query(query)
-
-        self.proximity_query = False  # defining it before checking - if check fails have flag for checking before
-        # retrieval
-        self.boolean_search = False
         if is_proximity_query(query):
-            self.proximity_query = True
-            self.proximity_value, self.pre_processed_query = preprocessing.preprocess_proximity_query(query)
-            return
-            # only working with query in the format #15(term1, term2) for now # TO DO: Maybe handle error and raise
-            # message to user? return
+            self.proximity_query, self.proximity_value, self.pre_processed_query = set_proximity_values(query, preprocessing)
+            return  # only working with query in the format #15(term1, term2) for now
+
         bool_operators = find_boolean_operators(query)
         if len(bool_operators) > 0:
-            self.boolean_search = True
-            self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = preprocessing.preprocess_boolean_query(query,
-                                                                                                      bool_operators)
+            self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
             return
 
+        # query, self.has_term_been_corrected, self.corrected_query = apply_spellchecking(query, self.abv_bool, self.phrase_bool)
         query, self.has_term_been_corrected = spellcheck_query(
                 query, self.abv_bool, first_execution)  # only spell check query if it's not boolean or proximity retrieval
         self.corrected_query = query  # save the spellchecked query before pre processing it
 
         # pre process query
-        self.pre_processed_query = preprocessing.apply_preprocessing(query)
+        self.pre_processed_query = []
 
-        # get the original, the abv and the combined query, to execute the index retrieval only once
-        if self.abv_bool:
-            self.pre_processed_abv_query = preprocessing.apply_preprocessing(self.query_abv)
-            self.original_query = self.pre_processed_query
-            self.pre_processed_query = self.pre_processed_query + self.pre_processed_abv_query
-
+        if not self.phrase_bool:
+            for q in query.split():
+                self.pre_processed_query.append(preprocessing.apply_preprocessing(q))
+        else:
+            r = r'"(.*?)"'
+            if re.split(r, query):
+                terms = re.findall(r, query) + re.sub(r, '', query).split()
+                terms = [i.strip() for i in terms if i]
+                terms = list(filter(None, terms))
+            else:
+                terms = re.findall(r, query)
+            for p in terms:
+                self.pre_processed_query.append(preprocessing.apply_preprocessing(p))
         return
-    
+
+    def set_initial_values(self,query):
+        self.initial_query = query
+        self.has_term_been_corrected = False
+        self.corrected_query = ""
+        self.proximity_query = False
+        self.boolean_search = False
+        self.phrase_bool = is_phrase_bool(query)
+        self.N = len(self.doc_sizes.keys())
+        self.l_tot = sum(list(self.doc_sizes.values()))
+
     def mini_index_builder(self, retrieval_method):
         start_time = datetime.datetime.now()
         if retrieval_method == "from disk":
@@ -143,16 +157,10 @@ class RetrievalExecution:
         start_time = datetime.datetime.now()
         bm25 = Bm25_model()
 
-        self.l_tot = sum(list(self.doc_sizes.values()))
 
-        if self.phrase_bool:
-            ranked_docs = bm25.phrase_rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes,
-                                           self.l_tot)
-        elif self.abv_bool:
-            ranked_docs = bm25.abbv(self.original_query, self.pre_processed_abv_query, self.mini_index, self.N,
-                                    self.doc_sizes, self.l_tot)
-        else:
-            ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
+
+        ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot
+                                      )
 
         print(f"ranking the docs with the bm25 model took {datetime.datetime.now() - start_time}")
 
@@ -165,13 +173,9 @@ class RetrievalExecution:
 
     def lm_ranking(self):
         lm = Language_model(miu=1303, g=0.2)
-        l_tot = sum(list(self.doc_sizes.values()))
 
-        if self.phrase_bool:
-            ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot)
-        else:
-            ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
-                                       use_pitman_yor_process=True)
+        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
+                                   use_pitman_yor_process=True)
         return ranked_docs
 
     def execute_ranking(self, used_model, start_date, end_date):
@@ -194,7 +198,8 @@ class RetrievalExecution:
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
             elif self.boolean_search:
-                ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N, self.positions_with_parentheses)
+                ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N,
+                                                       self.positions_with_parentheses, self.pre_processed_query)
                 ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
@@ -207,7 +212,7 @@ class RetrievalExecution:
 
             if used_model == "lm":
                 ranked_doc_numbers = self.lm_ranking()
-            
+
             start_time = datetime.datetime.now()
             # these can be re-ordered according to their date
             ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
