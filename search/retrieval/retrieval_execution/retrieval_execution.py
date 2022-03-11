@@ -47,17 +47,8 @@ class RetrievalExecution:
     print(f"date2doc size: {total_size(date2doc) / 1000000} mb")
     print(f"doc_sizes size: {total_size(doc_sizes) / 1000000} mb")
     print(f"word2byte size: {total_size(word2byte) / 1000000} mb")
-<<<<<<< HEAD
     
     abv_dict = abv_loader()
-=======
-
-    abv_dict = {}
-    with open("retrieval/data/Fin_abbv.csv", 'r') as fin_abbv:
-        abbv_temp = csv.reader(fin_abbv)
-        for a, m in abbv_temp:
-            abv_dict[a] = m
->>>>>>> 7c71fe7f3be66d9da708d5332a99fbe88d71bfeb
 
     def __init__(
             self,
@@ -156,9 +147,7 @@ class RetrievalExecution:
     def bm25_ranking(self):
         start_time = datetime.datetime.now()
         bm25 = Bm25_model()
-
-
-
+        
         ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot
                                       )
 
