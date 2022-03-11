@@ -16,7 +16,7 @@ def helper_example():
 def date2doc_initializer(date2doc_string):
     date2doc_obj = {}
     for date_string in date2doc_string:
-        date_obj = datetime.strptime(date_string.strip(' 00:00:00'), '%Y-%m-%d')
+        date_obj = datetime.strptime(date_string.strip(' 00:00:00'), '%Y%m%d')
         doc_set = set(date2doc_string[date_string])
         date2doc_obj[date_obj] = doc_set
     return date2doc_obj

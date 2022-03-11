@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 
-from retrieval.models import Article
+from retrieval.models import TestArticle
 from retrieval.retrieval_execution.retrieval_execution import RetrievalExecution
 from retrieval.retrieval_helpers.helpers import date_checker
 
@@ -36,7 +36,6 @@ def results(request):
     # init retrieval object
     retrieval_execution = RetrievalExecution(
                         query,
-                        1000, # change the hardcoded document number accordingly,
                         first_execution_run
     )
 
@@ -83,7 +82,7 @@ def results(request):
 def rerun_results(request, category, query, date_start, date_end):
     first_execution_run = False
 
-    retrieval_execution = RetrievalExecution(query, 1000, first_execution_run)
+    retrieval_execution = RetrievalExecution(query, first_execution_run)
 
     # check if the dates have an actual value
     if date_start == "None" and date_end == "None":
@@ -113,7 +112,7 @@ def rerun_results(request, category, query, date_start, date_end):
         return redirect('retrieval:index')
 
 def article_detail(request, document_id):
-    article = get_object_or_404(Article, document_id=document_id)
+    article = get_object_or_404(TestArticle, document_id=document_id)
 
     context = {
         'article': article,
