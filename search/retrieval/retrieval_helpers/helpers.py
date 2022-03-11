@@ -16,7 +16,7 @@ def helper_example():
 def date2doc_initializer(date2doc_string):
     date2doc_obj = {}
     for date_string in date2doc_string:
-        date_obj = datetime.strptime(date_string.strip(' 00:00:00'), '%Y-%m-%d')
+        date_obj = datetime.strptime(date_string.strip(' 00:00:00'), '%Y%m%d')
         doc_set = set(date2doc_string[date_string])
         date2doc_obj[date_obj] = doc_set
     return date2doc_obj
@@ -104,28 +104,32 @@ def find_boolean_operators(query):
     return boolean_operators_present
 
 
-def spellcheck_query(query, is_finance_abbreviation):
-    spell = SpellChecker()
-    corrected_query = []
-    has_term_been_corrected = False # flag for knowing if we should display message to user in view
-    query = query.split()  # query comes in as string
-    nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nyse_listed_companies.csv")
-    for term in query:
-        if term in nyse_listed['Symbol'].values:  # check if term is an abbreviation of common stock
-            term = nyse_listed.loc[nyse_listed['Symbol'] == term, 'Name'].item()
-            corrected_query.append(term)
-        elif nyse_listed['Name'].str.contains(term).any() or is_finance_abbreviation:  # check if the term is in the full name of the company -
-            # example berkshire would get corrected to something irrelevant
-            # or finance abbreviation such as ytm
-            corrected_query.append(term)
-        else:
-            corrected_term = spell.correction(term)
-            corrected_query.append(corrected_term)
-            has_term_been_corrected = True
+def spellcheck_query(query, is_finance_abbreviation, is_first_run):
+    # this will be executed if the user is not re-running for the uncorrected query
+    if is_first_run:
+        spell = SpellChecker()
+        corrected_query = []
+        has_term_been_corrected = False # flag for knowing if we should display message to user in view
+        query = query.split()  # query comes in as string
+        nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nyse_listed_companies.csv")
+        for term in query:
+            if term in nyse_listed['Symbol'].values:  # check if term is an abbreviation of common stock
+                term = nyse_listed.loc[nyse_listed['Symbol'] == term, 'Name'].item()
+                corrected_query.append(term)
+            elif nyse_listed['Name'].str.contains(term).any() or is_finance_abbreviation:  # check if the term is in the full name of the company -
+                # example berkshire would get corrected to something irrelevant
+                # or finance abbreviation such as ytm
+                corrected_query.append(term)
+            else:
+                corrected_term = spell.correction(term)
+                corrected_query.append(corrected_term)
+                has_term_been_corrected = True
 
-    corrected_query = " ".join(str(term) for term in corrected_query)  # convert back to string so no problems with preprocessing
-    return corrected_query, has_term_been_corrected
-
+        corrected_query = " ".join(str(term) for term in corrected_query)  # convert back to string so no problems with preprocessing
+        return corrected_query, has_term_been_corrected
+    # if the user just wants to run the uncorrected query, this will be executed
+    else:
+        return query, False
 
 def pre_process_nasdaq_list():
     nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nasdaq_screener.csv")

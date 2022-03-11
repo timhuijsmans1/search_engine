@@ -5,7 +5,6 @@ import sys
 import pandas as pd
 import csv
 
-from retrieval.models import Article
 from retrieval.retrieval_helpers.index_loader import load_mini_index
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import write_results_to_file
@@ -20,27 +19,23 @@ from retrieval.retrieval_models.language_model.language_model import Language_mo
 from retrieval.retrieval_models.proximity_retrieval.proximity_retrieval import proximity_retrieval
 from retrieval.retrieval_models.boolean_retrieval.boolean_retrieval import boolean_retrieval
 from retrieval.retrieval_helpers.index_compression import *
+from retrieval.retrieval_helpers.index_decoder import *
 
 
 class RetrievalExecution:
-
-    # date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     
     print("loading in search dictionaries")
     word2byte = json_loader("retrieval/data/word2byte.json")
     date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
-    print("done loading all startup files")
 
     print("loading and compressing index")
     encoded_index = index_compressor('retrieval/data/final_index.json')
-    print(f"finished encoding")
+    print(f"encoded index size: {total_size(encoded_index) / 1000000} mb")
 
-    print("sizes in memory:")
-    print(f"1. date2doc: {total_size(date2doc) / 1000000} mb")
-    print(f"1. doc_sizes: {total_size(doc_sizes) / 1000000} mb")
-    print(f"1. word2byte: {total_size(word2byte) / 1000000} mb")
-    print(f"1. encoded index: {total_size(encoded_index) / 1000000} mb")
+    print(f"date2doc size: {total_size(date2doc) / 1000000} mb")
+    print(f"doc_sizes size: {total_size(doc_sizes) / 1000000} mb")
+    print(f"word2byte size: {total_size(word2byte) / 1000000} mb")
     
     abv_dict = {}
     with open("retrieval/data/Fin_abbv.csv", 'r') as fin_abbv:
@@ -51,7 +46,7 @@ class RetrievalExecution:
     def __init__(
             self,
             query,
-            total_doc_number,
+            first_execution
     ):
 
         preprocessing = Preprocessing()
@@ -59,7 +54,7 @@ class RetrievalExecution:
         self.has_term_been_corrected = False
         self.corrected_query = ""
 
-        self.N = total_doc_number
+        self.N = len(self.doc_sizes.keys())
         self.abv_bool = False
         if '"' in query:
             self.phrase_bool = True
@@ -92,7 +87,7 @@ class RetrievalExecution:
             return
 
         query, self.has_term_been_corrected = spellcheck_query(
-                query, self.abv_bool)  # only spell check query if it's not boolean or proximity retrieval
+                query, self.abv_bool, first_execution)  # only spell check query if it's not boolean or proximity retrieval
         self.corrected_query = query  # save the spellchecked query before pre processing it
 
         # pre process query
@@ -106,14 +101,14 @@ class RetrievalExecution:
 
         return
 
-    def mini_index_builder(self):
-
+    def mini_index_builder(self, retrieval_method):
         start_time = datetime.datetime.now()
+        if retrieval_method == "from disk":
+            self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
+        if retrieval_method == "from memory":
+            self.mini_index = decoder(self.encoded_index, self.pre_processed_query)
 
-        print("")
-        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/index.json", self.word2byte)
-        print("the mini index contains the words:", self.mini_index.keys())
-
+        print(self.mini_index.keys())
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
 
         # check if mini_index is valid (at least one word of query is in the index)
@@ -132,7 +127,8 @@ class RetrievalExecution:
         return doc_numbers
 
     def database_retrieval(self, doc_numbers):
-        return {doc_no: Article.objects.get(document_id=doc_no) for doc_no in doc_numbers}
+        print("retrieving from db")
+        return {doc_no: TestArticle.objects.get(document_id=doc_no) for doc_no in doc_numbers[:1]}
 
     def valid_index(self):
         """
@@ -146,10 +142,8 @@ class RetrievalExecution:
             return True
 
     def bm25_ranking(self):
-
+        start_time = datetime.datetime.now()
         bm25 = Bm25_model()
-
-        print(self.abv_bool)
 
         self.l_tot = sum(list(self.doc_sizes.values()))
 
@@ -161,6 +155,8 @@ class RetrievalExecution:
                                     self.doc_sizes, self.l_tot)
         else:
             ranked_docs = bm25.rank(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
+
+        print(f"ranking the docs with the bm25 model took {datetime.datetime.now() - start_time}")
 
         return ranked_docs
 
@@ -182,7 +178,7 @@ class RetrievalExecution:
 
     def execute_ranking(self, used_model, start_date, end_date):
         # returns false if none of the query terms match the index
-        if self.mini_index_builder() == False:
+        if self.mini_index_builder("from memory") == False:
             return False
 
         else:
@@ -213,9 +209,7 @@ class RetrievalExecution:
 
             if used_model == "lm":
                 ranked_doc_numbers = self.lm_ranking()
-
-            # write_results_to_file(ranked_doc_numbers, used_model, self.pre_processed_query)  # writing ids retrieved
-            # to file
+            
             start_time = datetime.datetime.now()
             # these can be re-ordered according to their date
             ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
