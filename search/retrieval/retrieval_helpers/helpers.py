@@ -68,6 +68,28 @@ def extract_all_documents_term_appears_in(mini_index_term):
         documents_term_appears_in.append(k)
     return documents_term_appears_in
 
+def consecutive_occ(inverted_index_doc):
+
+    tot = len(inverted_index_doc)
+    tot_app = sorted(sum(inverted_index_doc, []))  # Main Assumption that one word is not occurring twice in a row
+    # Tot app returns the sorted list of document positions
+
+    count = 0
+    consecutive = 0
+
+    for i in range(len(tot_app) - 1):
+        if (tot_app[i + 1] - tot_app[i]) == 1:
+            for t in range(tot - 1):
+                if tot_app[i] in inverted_index_doc[t] and tot_app[i + 1] in inverted_index_doc[t + 1]:
+                    count += 1
+                    if count == (tot - 1):
+                        consecutive += 1
+                        count = 0
+        else:
+            count = 0
+    return consecutive
+
+
 
 def write_results_to_file(ranked_docs, used_model, pre_processed_query):
     filename = used_model
@@ -136,4 +158,37 @@ def pre_process_nasdaq_list():
     nyse_listed['Symbol'] = nyse_listed['Symbol'].str.lower()
     nyse_listed['Name'] = nyse_listed['Name'].str.lower()
     nyse_listed.to_csv("nyse_listed_companies.csv")
+
+
+def is_phrase_bool(query):
+    if '"' in query:
+        return True
+    return False
+
+def add_abv_expansion(query, abv_dict):
+
+    for t in query.split():
+        abv_dict_keys = [i.rstrip() for i in abv_dict.keys()]
+        if t.upper() in abv_dict_keys:
+            query += (f' "{abv_dict[t.upper()]}"')
+    return query
+
+
+def set_proximity_values(query, preprocessor):
+    is_proximity_query_bool = True
+    proximity_value, preprocessed_query = preprocessor.preprocess_proximity_query(query)
+    return is_proximity_query_bool, proximity_value, preprocessed_query
+
+
+def prepare_boolean_query(query, bool_operators, preprocessor):
+    boolean_search = True
+    preprocessed_boolean_query, boolean_operators, positions_with_parentheses = preprocessor.preprocess_boolean_query(
+        query, bool_operators)
+    return boolean_search, preprocessed_boolean_query, boolean_operators, positions_with_parentheses
+
+
+def apply_spellchecking(query, abv_bool, phrase_bool):
+    query, has_term_been_corrected = spellcheck_query(query, abv_bool, phrase_bool)
+    corrected_query = query
+    return query, has_term_been_corrected, corrected_query
 

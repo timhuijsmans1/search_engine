@@ -8,7 +8,8 @@ from collections import defaultdict, OrderedDict
 import time
 
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
-from retrieval.retrieval_helpers.helpers import helper_example # this is the way you can import supporting functions from this path
+from retrieval.retrieval_helpers.helpers import sort_document_scores
+from retrieval.retrieval_helpers.helpers import consecutive_occ
 
 
 class Bm25_model:
@@ -20,6 +21,7 @@ class Bm25_model:
         l_tot = len_tot
         l_avg = l_a
         k = 1.5
+        w_t_d = 1
 
         if term in positional_inverted_index.keys():
             if document not in positional_inverted_index[term][1].keys():
@@ -62,38 +64,137 @@ class Bm25_model:
                 documents_term_appears_in.append(k)
         return documents_term_appears_in
 
-    def consecutive_occ(self, inverted_index_doc):
+    # def abbv(self, query, abbv_query, inv_ind, N, doc_size, l_tot):
+    #
+    #     term_inverted_indexes = {}
+    #     documents_appearing_in = {}
+    #     query = set(query)
+    #     l_avg = l_tot / N
+    #     tf = {}
+    #     df_p = 0
+    #     union_of_documents = []
+    #     document_scores = {}
+    #
+    #     for term in query:
+    #         term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
+    #         if term_inverted_indexes[term]:
+    #             documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
+    #             df = len(documents_appearing_in[term])
+    #             idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
+    #             union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+    #
+    #
+    #     for term in abbv_query:
+    #         term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
+    #         documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
+    #
+    #     intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+    #
+    #     if union_of_documents:
+    #         for document in union_of_documents:
+    #
+    #             score = 0
+    #             document_vector = []
+    #
+    #             for term in query:
+    #                 w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg, idf)
+    #                 document_vector.append(w_t_d)
+    #                 score += w_t_d
+    #
+    #             document_scores[document] = score
+    #
+    #     for doc in intersection_of_documents:
+    #         positional_index = []
+    #         for term in abbv_query:
+    #             positional_index.append(term_inverted_indexes[term][1][doc])
+    #
+    #         cons_count = self.consecutive_occ(positional_index)
+    #         if cons_count > 0:
+    #             tf[doc] = cons_count
+    #             df_p += 1
+    #
+    #     if not intersection_of_documents:
+    #         return False
+    #
+    #     for doc in intersection_of_documents:
+    #
+    #         if doc in list(tf.keys()):
+    #             if doc in document_scores.keys():
+    #                 document_scores[doc] += self.compute_weight_phrase_document(doc, tf[doc], df_p, N, doc_size, l_tot)
+    #             else:
+    #                 document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df_p, N, doc_size, l_tot)
+    #
+    #     sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
+    #     sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
+    #
+    #     return sorted_document_scores
 
-        tot = len(inverted_index_doc)
-        tot_app = sorted(sum(inverted_index_doc, [])) # Main Assumption that one word is not occurring twice in a row
-        count = 0
-        consecutive = 0
 
-        for i in range(len(tot_app)-1):
-            if (tot_app[i+1] - tot_app[i]) == 1:
-                for t in range(tot - 1):
-                    if tot_app[i] in inverted_index_doc[t] and tot_app[i+1] in inverted_index_doc[t+1]:
-                        count += 1
-                        if count == (tot - 1):
-                            consecutive += 1
-                            count = 0
+    # def abbv(self, query, abbv_query, inv_ind, N, doc_size, l_tot, abbv_bool):
+    #
+    #     tot_docs = {}
+    #     t_docs = self.rank(query, inv_ind, N, doc_size, l_tot, abbv_bool)
+    #     p_docs = self.phrase_rank(abbv_query, inv_ind, N, doc_size, l_tot, abbv_bool)
+    #
+    #     if t_docs and p_docs:
+    #         tot_keys = set(list(t_docs.keys()) + list(p_docs.keys()))
+    #         for k in tot_keys:
+    #             tot_docs[k] = t_docs.get(k, 0) + p_docs.get(k, 0)
+    #     elif t_docs:
+    #         tot_docs = t_docs
+    #     elif p_docs:
+    #         tot_docs = p_docs
+    #
+    #     sorted_docs = sort_document_scores(tot_docs)
+    #     return sorted_docs
 
+    def retrieval(self, query, inv_ind, N, doc_size, l_tot):
+
+        start = time.time()
+        query_updated = []
+
+        for i, t in enumerate(query):
+            if len(query[i]) > 0:
+                query_updated.append(query[i])
+
+        singles = []
+        phrases = []
+        t_docs = []
+        p_docs = []
+        for term in query_updated:
+            if len(term) == 1:
+                singles.append(term[0])
             else:
-                count = 0
+                phrases.append(term)
+        tot_docs = {}
+        if singles:
+            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot)
+        if phrases:
+            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot)
 
-        return consecutive
 
+        if t_docs and p_docs:
+            tot_keys = set(list(t_docs.keys()) + list(p_docs.keys()))
+            for k in tot_keys:
+                tot_docs[k] = t_docs.get(k, 0) + p_docs.get(k, 0)
+        elif t_docs:
+            tot_docs = t_docs
+        elif p_docs:
+            tot_docs = p_docs
 
-    def abbv(self, query, abbv_query, inv_ind, N, doc_size, l_tot):
+        sorted_docs = sort_document_scores(tot_docs)
+        end = time.time()
+        print(end - start)
+        return sorted_docs
+
+    def rank(self, query, inv_ind, N, doc_size, l_tot):
+
 
         term_inverted_indexes = {}
         documents_appearing_in = {}
         query = set(query)
         l_avg = l_tot / N
-        tf = {}
-        df_p = 0
         union_of_documents = []
-        document_scores = {}
 
         for term in query:
             term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
@@ -101,67 +202,8 @@ class Bm25_model:
                 documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
                 df = len(documents_appearing_in[term])
                 idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
-                union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
-
-
-        for term in abbv_query:
-            term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
-            documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
-
-        intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
-
-        if union_of_documents:
-            for document in union_of_documents:
-
-                score = 0
-                document_vector = []
-
-                for term in query:
-                    w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg, idf)
-                    document_vector.append(w_t_d)
-                    score += w_t_d
-
-                document_scores[document] = score
-
-        for doc in intersection_of_documents:
-            positional_index = []
-            for term in abbv_query:
-                positional_index.append(term_inverted_indexes[term][1][doc])
-
-            cons_count = self.consecutive_occ(positional_index)
-            if cons_count > 0:
-                tf[doc] = cons_count
-                df_p += 1
-
-        if not intersection_of_documents:
-            return False
-
-        for doc in intersection_of_documents:
-
-            if doc in list(tf.keys()):
-                if doc in document_scores.keys():
-                    document_scores[doc] += self.compute_weight_phrase_document(doc, tf[doc], df_p, N, doc_size, l_tot)
-                else:
-                    document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df_p, N, doc_size, l_tot)
-
-        sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
-        sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
-
-        return sorted_document_scores
-
-    def rank(self, query, inv_ind, N, doc_size, l_tot):
-
-        term_inverted_indexes = {}
-        documents_appearing_in = {}
-        query = set(query)
-        l_avg = l_tot / N
-
-        for term in query:
-            term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
-            documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
-            df = len(documents_appearing_in[term])
-            idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
-        union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+        if documents_appearing_in:
+            union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
         document_scores = {}
 
         if not union_of_documents:
@@ -179,78 +221,56 @@ class Bm25_model:
                 score += w_t_d
 
             document_scores[document] = score
-            # document_scores[document] = sum([self.compute_weight_term_document(t, document, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg, idf) for t in query])
 
-        sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
-        sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
-        return sorted_document_scores
+
+        return document_scores
+
+        # else:
+        #     sorted_scores = sort_document_scores(document_scores)
+        #     return sorted_scores
 
     def phrase_rank(self, query, inv_ind, N, doc_size, l_tot):
 
-        term_inverted_indexes = {}
-        documents_appearing_in = {}
-        tf = {}
-        df = 0
         document_scores = {}
+        for phrase in query:
+            term_inverted_indexes = {}
+            documents_appearing_in = {}
+            tf = {}
+            df = 0
+
+            for term in phrase:
+                term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
+                if term_inverted_indexes[term]:
+                    documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
+
+            intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+
+            for doc in intersection_of_documents:
+                positional_index = []
+                for term in phrase:
+                    positional_index.append(term_inverted_indexes[term][1][doc])
+
+                cons_count = consecutive_occ(positional_index)
+                if cons_count > 0:
+                    tf[doc] = cons_count
+                    df += 1
 
 
-        for term in query:
-            term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
-            documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
+            if not intersection_of_documents:
+                return False
 
-        intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+            for doc in intersection_of_documents:
 
-        for doc in intersection_of_documents:
-            positional_index = []
-            for term in query:
-                positional_index.append(term_inverted_indexes[term][1][doc])
-
-            cons_count = self.consecutive_occ(positional_index)
-            if cons_count > 0:
-                tf[doc] = cons_count
-                df += 1
+                if doc in tf.keys():
+                    if doc in document_scores.keys():
+                        document_scores[doc] += self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size, l_tot)
+                    else:
+                        document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size,
+                                                                                    l_tot)
 
 
-        if not intersection_of_documents:
-            return False
+        return document_scores
 
-        for doc in intersection_of_documents:
-
-            if doc in tf.keys():
-                document_scores[doc] = self.compute_weight_phrase_document(doc, tf[doc], df, N, doc_size, l_tot)
-
-        sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
-        sorted_document_scores = [i[0] for i in sorted_document_scores[:100]]
-        return sorted_document_scores
-
-if __name__ == '__main__':
-    preprocessor = Preprocessing()
-    Bm25_model = Bm25_model()
-    phrase_bool = False
-
-    with open('inverted_index.json') as results:
-        with open('content_length.json') as docs:
-            inv_ind = json.load(results)
-            doc_size = json.load(docs)
-
-    query = input("Enter query: ")
-    if '"' in query:
-        phrase_bool = True
-        query = re.sub(r'[^\w]', ' ', query)
-        query = preprocessor.preprocess_query(query)
-        del query[0]
-        del query[-1]
-    else:
-        query = preprocessor.preprocess_query(query)
-
-    if phrase_bool:
-        phrase_query_results_dict = {}
-        N = len(doc_size.keys())
-        phrase_query_results_dict = Bm25_model.phrase_rank(query, inv_ind, N, doc_size)
-        print(phrase_query_results_dict)
-
-    else:
-        query_results_dict = {}
-        N = len(doc_size.keys())
-        query_results_dict = Bm25_model.rank(query, inv_ind, N, doc_size)
-        print(query_results_dict)
+        # else:
+        #     sorted_scores = sort_document_scores(document_scores)
+        #     return sorted_scores
