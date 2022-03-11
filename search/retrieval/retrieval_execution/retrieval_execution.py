@@ -60,12 +60,8 @@ class RetrievalExecution:
     ):
 
         preprocessing = Preprocessing()
-        self.initial_query = query
-        self.has_term_been_corrected = False
-        self.corrected_query = ""
 
-        self.N = len(self.doc_sizes.keys())
-        self.l_tot = sum(list(self.doc_sizes.values()))
+        self.set_initial_values(query)
 
         self.abv_bool = False
 
@@ -100,6 +96,16 @@ class RetrievalExecution:
             for p in terms:
                 self.pre_processed_query.append(preprocessing.apply_preprocessing(p))
         return
+
+    def set_initial_values(self,query):
+        self.initial_query = query
+        self.has_term_been_corrected = False
+        self.corrected_query = ""
+        self.proximity_query = False
+        self.boolean_search = False
+        self.phrase_bool = is_phrase_bool(query)
+        self.N = len(self.doc_sizes.keys())
+        self.l_tot = sum(list(self.doc_sizes.values()))
 
     def mini_index_builder(self, retrieval_method):
         start_time = datetime.datetime.now()
