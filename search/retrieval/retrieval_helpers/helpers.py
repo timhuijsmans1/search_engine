@@ -152,7 +152,7 @@ def spellcheck_query(query, is_finance_abbreviation, is_first_run):
             else:
                 corrected_term = spell.correction(term)
                 corrected_query.append(corrected_term)
-                has_term_been_corrected = True
+                has_term_been_corrected = True if term != corrected_term else False
 
         corrected_query = " ".join(str(term) for term in corrected_query)  # convert back to string so no problems with preprocessing
         return corrected_query, has_term_been_corrected
