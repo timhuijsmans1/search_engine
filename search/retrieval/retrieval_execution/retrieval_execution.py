@@ -105,6 +105,18 @@ class RetrievalExecution:
         self.l_tot = sum(list(self.doc_sizes.values()))
 
     def mini_index_builder(self, retrieval_method):
+        #TODO: activate the commented out part, and change the models to accept tf or pos lists
+        # # disk loading method
+        # # if phrase or proxi search is activated, we want to load the index with position lists
+        # # The format of mini_index will be {word: [doc_count, {doc_id: [pos]}]}
+        # if self.phrase_bool == True or self.proximity_query == True:
+        #     self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
+        
+        # # if phrase search is not activated, we want to load the index with tfs
+        # # The format of mini_index will be {word: [doc_count, {doc_id: tf}]}
+        # else:
+        #     self.mini_index = decoder(self.encoded_index, self.pre_processed_query)
+
         start_time = datetime.datetime.now()
         if retrieval_method == "from disk":
             self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
@@ -147,7 +159,6 @@ class RetrievalExecution:
     def bm25_ranking(self):
         start_time = datetime.datetime.now()
         bm25 = Bm25_model()
-        
         ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot
                                       )
 
