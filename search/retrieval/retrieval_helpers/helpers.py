@@ -188,8 +188,8 @@ def prepare_boolean_query(query, bool_operators, preprocessor):
         query, bool_operators)
     return boolean_search, preprocessed_boolean_query, boolean_operators, positions_with_parentheses
 
+
 def apply_spellchecking(query, abv_bool, phrase_bool):
-    has_term_been_corrected = False
     query, has_term_been_corrected = spellcheck_query(query, abv_bool, phrase_bool)
     corrected_query = query
     return query, has_term_been_corrected, corrected_query
