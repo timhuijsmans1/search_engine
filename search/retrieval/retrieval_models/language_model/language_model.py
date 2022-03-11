@@ -143,33 +143,33 @@ class Language_model:
         return sorted_scores
 
 
-    def assign_scores(self, union_of_documents, query, mini_index, use_pitman_yor_process, query_term_frequency, length_collection, doc_sizes, abbv_bool):
-        document_scores = {}
-        length_query = len(query)
-        for document in union_of_documents:
-            score = 0
-            for term in query:
-                if term in mini_index.keys():
-                    if use_pitman_yor_process:
-                        w_t_d = self.compute_weight_term_document_pyp(query_term_frequency[term], term, mini_index,
-                                                                      document, length_collection)
-                        score += w_t_d
-                    else:  # use lm-dirichlet smoothing
-                        self.miu = 1089  # Different value identified in the paper compared to those used when
-                        # pitman_yor_process is used
-                        w_t_d = self.compute_weight_term_document(query_term_frequency[term], term, mini_index, document,
-                                                                  length_collection)
-                        score += w_t_d
-            L_d = doc_sizes[str(document)]
-            if use_pitman_yor_process:
-                dicsounted_l_d = max((L_d - self.g * (L_d ** self.g)), 0)
-                final_score = length_query * math.log(1 - (dicsounted_l_d / (L_d + self.miu))) + score
-            else:
-                final_score = length_query * math.log(self.miu / (L_d + self.miu)) + score
-            document_scores[document] = final_score
-        ## TO DO - Here find score with exactly equal values - or within 10% range - should be duplicates so only keep one
-
-        return document_scores
+    # def assign_scores(self, union_of_documents, query, mini_index, use_pitman_yor_process, query_term_frequency, length_collection, doc_sizes, abbv_bool):
+    #     document_scores = {}
+    #     length_query = len(query)
+    #     for document in union_of_documents:
+    #         score = 0
+    #         for term in query:
+    #             if term in mini_index.keys():
+    #                 if use_pitman_yor_process:
+    #                     w_t_d = self.compute_weight_term_document_pyp(query_term_frequency[term], term, mini_index,
+    #                                                                   document, length_collection)
+    #                     score += w_t_d
+    #                 else:  # use lm-dirichlet smoothing
+    #                     self.miu = 1089  # Different value identified in the paper compared to those used when
+    #                     # pitman_yor_process is used
+    #                     w_t_d = self.compute_weight_term_document(query_term_frequency[term], term, mini_index, document,
+    #                                                               length_collection)
+    #                     score += w_t_d
+    #         L_d = doc_sizes[str(document)]
+    #         if use_pitman_yor_process:
+    #             dicsounted_l_d = max((L_d - self.g * (L_d ** self.g)), 0)
+    #             final_score = length_query * math.log(1 - (dicsounted_l_d / (L_d + self.miu))) + score
+    #         else:
+    #             final_score = length_query * math.log(self.miu / (L_d + self.miu)) + score
+    #         document_scores[document] = final_score
+    #     ## TO DO - Here find score with exactly equal values - or within 10% range - should be duplicates so only keep one
+    #
+    #     return document_scores
 
 
 if __name__ == '__main__':
