@@ -1,19 +1,36 @@
 from functools import reduce
-
+from retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
 import setuptools.command.install
+from retrieval.retrieval_helpers.helpers import consecutive_occ
 
-
-def boolean_retrieval(boolean_operators, mini_index, N, positions_with_parentheses):
+def boolean_retrieval(boolean_operators, mini_index, N, positions_with_parentheses, query):
     """
     Boolean_operators: extracted boolean terms from preprocessing
     mini_index: constructed in retrieval_execution
     N: length of the index, used for creating list of all doc ids
     """
     terms_appearances = {}
-    query_terms = list(mini_index.keys())
-    for term in query_terms:
-        terms_appearances[term] = mini_index[term][1].keys()  # mini_index[term][0] = number of appearances; mini_index[
-        # term][1] = dictionary of documents and positions
+
+    for query_term in query:
+        # mini_index[term][0] = number of appearances; mini_index[term][1] = dictionary of documents and positions
+        if type(query_term) is str:
+            terms_appearances[query_term] = mini_index[query_term][1].keys()
+        elif type(query_term) is list:
+            phrase_doc_appearences = {}
+            list_name = ""
+            documents_appearing_in = {}
+            for element in query_term:
+                list_name += element + " "
+                documents_appearing_in[element] = extract_all_documents_term_appears_in(mini_index[element][1])
+            intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+            for doc in intersection_of_documents:
+                positional_index = []
+                for term in query_term:
+                    positional_index.append(mini_index[term][1][doc])
+                cons_count = consecutive_occ(positional_index)
+                if cons_count > 0:
+                    phrase_doc_appearences[doc] = cons_count
+            terms_appearances[list_name] = phrase_doc_appearences.keys()
     document_ids = apply_boolean_logic(terms_appearances, boolean_operators, N, positions_with_parentheses)
     return document_ids[:100]  # return only first 100
 
@@ -32,6 +49,10 @@ def apply_boolean_logic(terms_appearances, boolean_operators, N, positions_with_
             if len(terms_appearances) == 1:  # only one term, eg: "NOT apple"
                 print(terms_appearances.keys())
                 doc_ids = reduce(set.difference, map(set, terms_appearances.values()), all_doc_ids)
+                return sorted(doc_ids)
+            else:
+                doc_ids = reduce(set.difference, map(set, terms_appearances.values()))  # used when doing boolean retrieval with phrase search
+                # "boris Johnson" AND NOT "vladimir putin"
                 return sorted(doc_ids)
     else:
         if len(terms_in_query) == 2:  # apple AND NOT facebook

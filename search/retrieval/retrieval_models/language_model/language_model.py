@@ -139,7 +139,13 @@ class Language_model:
         length_collection = l_tot  # length of the collection in terms
         # g = self.g  # discounting parameter - as used in paper "Improvements to BM25 and Language Model examined - used for pyp implementation
         length_query = len(query)  # length of the query
+        sorted_scores = self.assign_scores(union_of_documents, query, mini_index, use_pitman_yor_process, query_term_frequency, length_collection, doc_sizes, abbv_bool)
+        return sorted_scores
+
+
+    def assign_scores(self, union_of_documents, query, mini_index, use_pitman_yor_process, query_term_frequency, length_collection, doc_sizes, abbv_bool):
         document_scores = {}
+        length_query = len(query)
         for document in union_of_documents:
             score = 0
             for term in query:

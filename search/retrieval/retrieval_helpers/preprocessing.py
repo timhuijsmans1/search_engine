@@ -75,14 +75,15 @@ class Preprocessing:
                 if is_phrase_bool(term) and not identified_start_of_phrase:  # does this have quotes in it and first time we see it?
                     phrase = []
                     identified_start_of_phrase = True
-
                     term = self.clean_term(term)
                     phrase.append(term)
-                elif is_phrase_bool(term) and identified_start_of_phrase:
+                elif identified_start_of_phrase:
+                    if is_phrase_bool(term):
+                        identified_start_of_phrase = False
                     term = self.clean_term(term)
                     phrase.append(term)
-                    terms.append(phrase)
-                    identified_start_of_phrase = False
+                    if not identified_start_of_phrase:
+                        terms.append(phrase)
                 else:
                     term = self.clean_term(term)
                     terms.append(term)

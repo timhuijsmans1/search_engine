@@ -180,18 +180,6 @@ class RetrievalExecution:
         lm = Language_model(miu=1303, g=0.2)
         l_tot = sum(list(self.doc_sizes.values()))
 
-        # if self.phrase_bool:
-        #     ranked_docs = lm.phrase_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
-        #                                       self.abv_bool)
-        #
-        # elif self.abv_bool:
-        #     ranked_docs = lm.abbv(self.pre_processed_query, self.pre_processed_abv_query, self.mini_index, self.N,
-        #                           self.doc_sizes, l_tot,
-        #                           self.abv_bool, use_pitman_yor_process=True)
-        # else:
-        #     ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
-        #                                self.abv_bool, use_pitman_yor_process=True)
-
         ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
                                    use_pitman_yor_process=True)
         return ranked_docs
@@ -218,7 +206,7 @@ class RetrievalExecution:
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
             elif self.boolean_search:
                 ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N,
-                                                       self.positions_with_parentheses)
+                                                       self.positions_with_parentheses, self.pre_processed_query)
                 ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
