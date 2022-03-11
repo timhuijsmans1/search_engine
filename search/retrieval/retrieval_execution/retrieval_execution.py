@@ -101,7 +101,7 @@ class RetrievalExecution:
             self.pre_processed_query = self.pre_processed_query + self.pre_processed_abv_query
 
         return
-
+    
     def mini_index_builder(self, retrieval_method):
         start_time = datetime.datetime.now()
         if retrieval_method == "from disk":
