@@ -5,7 +5,6 @@ import sys
 import pandas as pd
 import csv
 
-from retrieval.models import TestArticle
 from retrieval.retrieval_helpers.index_loader import load_mini_index
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import write_results_to_file
@@ -193,14 +192,10 @@ class RetrievalExecution:
             if self.proximity_query:  # if we are doing a proximtiy query no need to check which model is used,
                 # just retrieve the docs
                 ranked_doc_numbers = proximity_retrieval(self.mini_index, self.proximity_value)
-                ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
-                print(f"database retrieval took {datetime.datetime.now() - start_time}")
-                return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
+                return
             elif self.boolean_search:
                 ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N, self.positions_with_parentheses)
-                ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
-                print(f"database retrieval took {datetime.datetime.now() - start_time}")
-                return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
+                return
 
             if used_model == "bm25":
                 ranked_doc_numbers = self.bm25_ranking()
@@ -210,10 +205,5 @@ class RetrievalExecution:
 
             if used_model == "lm":
                 ranked_doc_numbers = self.lm_ranking()
-            
-            start_time = datetime.datetime.now()
-            # these can be re-ordered according to their date
-            ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
-            print(f"database retrieval took {datetime.datetime.now() - start_time}")
 
-            return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
+            return
