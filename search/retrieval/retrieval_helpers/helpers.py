@@ -1,10 +1,10 @@
 import json
 import re
-from datetime import datetime
-
+import csv
 import pandas as pd
-from textblob import TextBlob
 
+from datetime import datetime
+from textblob import TextBlob
 from spellchecker import SpellChecker
 
 
@@ -12,6 +12,13 @@ def helper_example():
     # do something
     return None
 
+def abv_loader():
+    abv_dict = {}
+    with open("retrieval/data/Fin_abbv.csv", 'r') as fin_abbv:
+        abbv_temp = csv.reader(fin_abbv)
+        for a, m in abbv_temp:
+            abv_dict[a] = m
+    return abv_dict
 
 def date2doc_initializer(date2doc_string):
     date2doc_obj = {}
