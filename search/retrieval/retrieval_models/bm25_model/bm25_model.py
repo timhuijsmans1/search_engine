@@ -21,7 +21,6 @@ class Bm25_model:
         l_tot = len_tot
         l_avg = l_a
         k = 1.5
-        w_t_d = 1
 
         if term in positional_inverted_index.keys():
             if document not in positional_inverted_index[term][1].keys():
@@ -148,7 +147,7 @@ class Bm25_model:
     #     sorted_docs = sort_document_scores(tot_docs)
     #     return sorted_docs
 
-    def retrieval(self, query, inv_ind, N, doc_size, l_tot):
+    def retrieval(self, query, inv_ind, N, doc_size, l_tot, date_ind, date_bool):
 
         start = time.time()
         query_updated = []
@@ -168,9 +167,9 @@ class Bm25_model:
                 phrases.append(term)
         tot_docs = {}
         if singles:
-            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot)
+            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot, date_ind, date_bool)
         if phrases:
-            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot)
+            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot, date_ind, date_bool)
 
 
         if t_docs and p_docs:
@@ -187,7 +186,7 @@ class Bm25_model:
         print(end - start)
         return sorted_docs
 
-    def rank(self, query, inv_ind, N, doc_size, l_tot):
+    def rank(self, query, inv_ind, N, doc_size, l_tot, date_ind, date_bool):
 
 
         term_inverted_indexes = {}
@@ -208,18 +207,35 @@ class Bm25_model:
                 idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
         if documents_appearing_in:
 
-            if len(list(documents_appearing_in.keys())) > 1:
-                intersection0 = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
-                if len(intersection0) < 100:
-                    d1, d2 = split_list(list(documents_appearing_in.values()))
-                    intersection1 = sorted(reduce(set.intersection, map(set, d1)))
-                    intersection2 = sorted(reduce(set.intersection, map(set, d2)))
-                    if len(set(intersection1 + intersection2)) < 100:
-                        union_bool = True
-                        union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+            if date_bool:
+                if len(list(documents_appearing_in.keys())) > 1:
+                    intersection0 = set(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                    if len(intersection0) < 100:
+                        d1, d2 = split_list(list(documents_appearing_in.values()))
+                        intersection1 = set(reduce(set.intersection, map(set, d1))).intersection(date_ind)
+                        intersection2 = set(reduce(set.intersection, map(set, d2))).intersection(date_ind)
+                        if len(set(intersection1 + intersection2)) < 100:
+                            union_bool = True
+                            union_of_documents = set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                else:
+                    union_bool = True
+                    union_of_documents = set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind)
+
             else:
-                union_bool = True
-                union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+                if len(list(documents_appearing_in.keys())) > 1:
+                    intersection0 = reduce(set.intersection, map(set, documents_appearing_in.values()))
+                    if len(intersection0) < 100:
+                        d1, d2 = split_list(list(documents_appearing_in.values()))
+                        intersection1 = reduce(set.intersection, map(set, d1))
+                        intersection2 = reduce(set.intersection, map(set, d2))
+                        if len(set(intersection1 + intersection2)) < 100:
+                            union_bool = True
+                            union_of_documents = reduce(set.union, map(set, documents_appearing_in.values()))
+
+                else:
+                    union_bool = True
+                    union_of_documents = reduce(set.union, map(set, documents_appearing_in.values()))
+
         document_scores = {}
 
         if not union_bool:
@@ -262,7 +278,7 @@ class Bm25_model:
         #     sorted_scores = sort_document_scores(document_scores)
         #     return sorted_scores
 
-    def phrase_rank(self, query, inv_ind, N, doc_size, l_tot):
+    def phrase_rank(self, query, inv_ind, N, doc_size, l_tot, date_ind, date_bool):
 
         document_scores = {}
         for phrase in query:
@@ -276,7 +292,12 @@ class Bm25_model:
                 if term_inverted_indexes[term]:
                     documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
 
-            intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+            if date_bool:
+                intersection_of_documents = set(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind)
+
+            else:
+                intersection_of_documents = reduce(set.intersection, map(set, documents_appearing_in.values()))
+
 
             for doc in intersection_of_documents:
                 positional_index = []

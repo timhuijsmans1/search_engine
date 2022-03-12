@@ -2,6 +2,7 @@ import json
 import re
 import csv
 import pandas as pd
+from functools import reduce
 
 from datetime import datetime
 from textblob import TextBlob
@@ -134,6 +135,13 @@ def find_boolean_operators(query):
 def split_list(a_list):
     half = len(a_list)//2
     return a_list[:half], a_list[half:]
+
+# def get_date_index_intersection(index, date_index):
+#     mini_index = {}
+#     return_index = {}
+#
+#
+#     return mini_index
 
 def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_bool):
     # this will be executed if the user is not re-running for the uncorrected query

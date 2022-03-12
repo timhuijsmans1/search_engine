@@ -82,7 +82,6 @@ class RetrievalExecution:
                 self.phrase_bool)  # only spell check query if it's not boolean or proximity retrieval
             self.corrected_query = query  # save the spellchecked query before pre processing it
             for q in query.split():
-
                 self.pre_processed_query.append(preprocessing.apply_preprocessing(q))
         else:
             r = r'"(.*?)"'
@@ -102,9 +101,11 @@ class RetrievalExecution:
         self.corrected_query = ""
         self.proximity_query = False
         self.boolean_search = False
+        self.date_bool = False
         self.phrase_bool = is_phrase_bool(query)
         self.N = len(self.doc_sizes.keys())
         self.l_tot = sum(list(self.doc_sizes.values()))
+        self.docs_in_date_range = []
 
     def mini_index_builder(self, retrieval_method):
         #TODO: activate the commented out part, and change the models to accept tf or pos lists
@@ -139,7 +140,7 @@ class RetrievalExecution:
 
         for date in date_range:
             date_docs_set = self.date2doc.get(date, set())
-            doc_number = doc_numbers | date_docs_set
+            doc_numbers = doc_numbers | date_docs_set
 
         return doc_numbers
 
@@ -161,8 +162,8 @@ class RetrievalExecution:
     def bm25_ranking(self):
         start_time = datetime.datetime.now()
         bm25 = Bm25_model()
-        ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot
-                                      )
+        ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
+                                     self.docs_in_date_range, self.date_bool)
 
         print(f"ranking the docs with the bm25 model took {datetime.datetime.now() - start_time}")
 
@@ -178,6 +179,7 @@ class RetrievalExecution:
         lm = Language_model(miu=1303, g=0.2)
 
         ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
+                                   self.docs_in_date_range, self.date_bool,
                                    use_pitman_yor_process=True)
         print(f"ranking the docs with the lm model took {datetime.datetime.now() - start_time}")
         return ranked_docs
@@ -190,7 +192,10 @@ class RetrievalExecution:
         else:
             # if date filters are provided, get the date range doc union
             if start_date and end_date:
-                docs_in_date_range = self.get_date_range_union(start_date, end_date)
+                self.docs_in_date_range = self.get_date_range_union(start_date, end_date)
+                self.date_bool = True
+
+
 
             # document ranking
             start_time = datetime.datetime.now()
