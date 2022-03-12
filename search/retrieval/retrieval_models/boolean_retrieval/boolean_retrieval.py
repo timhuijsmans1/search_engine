@@ -13,8 +13,9 @@ def boolean_retrieval(boolean_operators, mini_index, N, positions_with_parenthes
 
     for query_term in query:
         # mini_index[term][0] = number of appearances; mini_index[term][1] = dictionary of documents and positions
-        if type(query_term) is str:
-            terms_appearances[query_term] = mini_index[query_term][1].keys()
+        if len(query_term) == 1:
+            term_value = query_term[0]  #  term is a single list so extracting it to access dictionary
+            terms_appearances[term_value] = mini_index[term_value][1].keys()
         elif type(query_term) is list:
             phrase_doc_appearences = {}
             list_name = ""

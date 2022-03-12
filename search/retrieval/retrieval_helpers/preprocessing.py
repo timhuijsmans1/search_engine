@@ -85,7 +85,7 @@ class Preprocessing:
                     if not identified_start_of_phrase:
                         terms.append(phrase)
                 else:
-                    term = self.clean_term(term)
+                    term = [self.clean_term(term)]
                     terms.append(term)
                 i+=1
         return terms, boolean_operators, position_with_parantheses
