@@ -97,7 +97,6 @@ def consecutive_occ(inverted_index_doc):
     return consecutive
 
 
-
 def write_results_to_file(ranked_docs, used_model, pre_processed_query):
     filename = used_model
     for term in pre_processed_query:
