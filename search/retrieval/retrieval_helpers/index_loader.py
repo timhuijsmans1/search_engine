@@ -1,10 +1,12 @@
 import json
+import ujson
 import line_profiler
 import atexit
 
 profile = line_profiler.LineProfiler()
 atexit.register(profile.print_stats)
 
+@profile
 def load_mini_index(word_list, index_path, word2byte):
     """
     input params:
@@ -32,7 +34,7 @@ def load_mini_index(word_list, index_path, word2byte):
                 inverted_list = f.read(bytes_to_read)
 
                 # add inverted list to the index we want to retrieve
-                inverted_list_dict = json.loads(inverted_list)
+                inverted_list_dict = ujson.loads(inverted_list)
                 mini_index = {**mini_index, **inverted_list_dict}
                 
             except:
