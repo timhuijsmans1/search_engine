@@ -116,6 +116,8 @@ def write_results_to_file(ranked_docs, used_model, pre_processed_query):
 
 def sort_document_scores(document_scores):
     sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
+    for doc in sorted_document_scores[:100]:
+        print('%s: %s' % (doc[0], doc[1]))
     sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
     return sorted_document_ids
 
@@ -132,6 +134,10 @@ def find_boolean_operators(query):
                                            query)  # TO DO: Maybe change to "if term in query" more readable - this implementation works with more than 1 AND, OR etc.
     return boolean_operators_present
 
+
+def split_list(a_list):
+    half = len(a_list)//2
+    return a_list[:half], a_list[half:]
 
 def spellcheck_query(query, is_finance_abbreviation, is_first_run):
     # this will be executed if the user is not re-running for the uncorrected query
