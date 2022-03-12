@@ -6,7 +6,6 @@ import atexit
 profile = line_profiler.LineProfiler()
 atexit.register(profile.print_stats)
 
-@profile
 def load_mini_index(word_list, index_path, word2byte):
     """
     input params:
