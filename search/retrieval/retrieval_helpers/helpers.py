@@ -133,29 +133,40 @@ def find_boolean_operators(query):
     return boolean_operators_present
 
 
-def spellcheck_query(query, is_finance_abbreviation, is_first_run):
+def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_bool):
     # this will be executed if the user is not re-running for the uncorrected query
     if is_first_run:
         spell = SpellChecker()
         corrected_query = []
-        has_term_been_corrected = False # flag for knowing if we should display message to user in view
-        query = query.split()  # query comes in as string
         nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nyse_listed_companies.csv")
+        # if is_phrase_bool:
+        #     r = r'"(.*?)"'
+        #     if re.split(r, query):
+        #         phrases = re.findall(r, query) + re.sub(r, '', query).split()
+        #         phrases = [i.strip() for i in phrases if i]
+        #         phrases = list(filter(None, phrases))
+        #         for phrase in phrases:
+        #             terms_in_phrase = phrase.split()
+        #             corrected_phrase = []
+        #             for term in terms_in_phrase:
+        #                 term = apply_spellchecking(term, nyse_listed, is_finance_abbreviation, spell)
+        #                 corrected_phrase.append(term)
+        #             corrected_phrase = " ".join(str(term) for term in corrected_phrase)
+        #             corrected_phrase = f'"{corrected_phrase}"'
+        #             corrected_query.append(corrected_phrase)
+        #         corrected_query = " ".join(str(phrase) for phrase in corrected_query)
+        #     else:
+        #         terms = re.findall(r, query)
+        # else:
+        query = query.split()  # query comes in as string
         for term in query:
-            if term in nyse_listed['Symbol'].values:  # check if term is an abbreviation of common stock
-                term = nyse_listed.loc[nyse_listed['Symbol'] == term, 'Name'].item()
-                corrected_query.append(term)
-            elif nyse_listed['Name'].str.contains(term).any() or is_finance_abbreviation:  # check if the term is in the full name of the company -
-                # example berkshire would get corrected to something irrelevant
-                # or finance abbreviation such as ytm
-                corrected_query.append(term)
-            else:
-                corrected_term = spell.correction(term)
-                corrected_query.append(corrected_term)
-                has_term_been_corrected = True if term != corrected_term else False
-
+            term = apply_spellchecking(term, nyse_listed, is_finance_abbreviation, spell)
+            corrected_query.append(term)
         corrected_query = " ".join(str(term) for term in corrected_query)  # convert back to string so no problems with preprocessing
+        query = " ".join(str(term) for term in query)
+        has_term_been_corrected = True if query != corrected_query else False
         return corrected_query, has_term_been_corrected
+
     # if the user just wants to run the uncorrected query, this will be executed
     else:
         return query, False
@@ -194,8 +205,16 @@ def prepare_boolean_query(query, bool_operators, preprocessor):
     return boolean_search, preprocessed_boolean_query, boolean_operators, positions_with_parentheses
 
 
-def apply_spellchecking(query, abv_bool, phrase_bool):
-    query, has_term_been_corrected = spellcheck_query(query, abv_bool, phrase_bool)
-    corrected_query = query
-    return query, has_term_been_corrected, corrected_query
+def apply_spellchecking(term, nyse_listed, is_finance_abbreviation, spell):
+    if term in nyse_listed['Symbol'].values:  # check if term is an abbreviation of common stock
+        term = nyse_listed.loc[nyse_listed['Symbol'] == term, 'Name'].item()
+        return term
+    elif nyse_listed['Name'].str.contains(
+            term).any() or is_finance_abbreviation:  # check if the term is in the full name of the company -
+        # example berkshire would get corrected to something irrelevant
+        # or finance abbreviation such as ytm
+        return term
+    else:
+        corrected_term = spell.correction(term)
+    return corrected_term
 

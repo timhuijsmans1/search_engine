@@ -71,16 +71,18 @@ class RetrievalExecution:
             self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
             return
 
-        # query, self.has_term_been_corrected, self.corrected_query = apply_spellchecking(query, self.abv_bool, self.phrase_bool)
-        query, self.has_term_been_corrected = spellcheck_query(
-                query, self.abv_bool, first_execution)  # only spell check query if it's not boolean or proximity retrieval
-        self.corrected_query = query  # save the spellchecked query before pre processing it
+
 
         # pre process query
         self.pre_processed_query = []
 
         if not self.phrase_bool:
+            query, self.has_term_been_corrected = spellcheck_query(
+                query, self.abv_bool, first_execution,
+                self.phrase_bool)  # only spell check query if it's not boolean or proximity retrieval
+            self.corrected_query = query  # save the spellchecked query before pre processing it
             for q in query.split():
+
                 self.pre_processed_query.append(preprocessing.apply_preprocessing(q))
         else:
             r = r'"(.*?)"'
