@@ -10,7 +10,7 @@ import time
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import sort_document_scores
 from retrieval.retrieval_helpers.helpers import consecutive_occ
-
+from retrieval.retrieval_helpers.helpers import split_list
 
 class Bm25_model:
 
@@ -195,6 +195,10 @@ class Bm25_model:
         query = set(query)
         l_avg = l_tot / N
         union_of_documents = []
+        union_bool = False
+        intersection0 = []
+        intersection1 = []
+        intersection2 = []
 
         for term in query:
             term_inverted_indexes[term] = self.get_term_entry_from_inverted_index(inv_ind, term)
@@ -203,24 +207,53 @@ class Bm25_model:
                 df = len(documents_appearing_in[term])
                 idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
         if documents_appearing_in:
-            union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+
+            if len(list(documents_appearing_in.keys())) > 1:
+                intersection0 = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+                if len(intersection0) < 100:
+                    d1, d2 = split_list(list(documents_appearing_in.values()))
+                    intersection1 = sorted(reduce(set.intersection, map(set, d1)))
+                    intersection2 = sorted(reduce(set.intersection, map(set, d2)))
+                    if len(set(intersection1 + intersection2)) < 100:
+                        union_bool = True
+                        union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+            else:
+                union_bool = True
+                union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
         document_scores = {}
 
-        if not union_of_documents:
-            return False
+        if not union_bool:
+            total_inter = set(intersection0+intersection1+intersection2)
+            for document in total_inter:
+                score = 0
+                document_vector = []
+
+                for term in query:
+                    w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N,
+                                                              doc_size, l_tot, l_avg, idf)
+                    document_vector.append(w_t_d)
+                    score += w_t_d
+
+                document_scores[document] = score
 
 
-        for document in union_of_documents:
+        else:
 
-            score = 0
-            document_vector = []
+            if not union_of_documents:
+                return False
 
-            for term in query:
-                w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg, idf)
-                document_vector.append(w_t_d)
-                score += w_t_d
 
-            document_scores[document] = score
+            for document in union_of_documents:
+
+                score = 0
+                document_vector = []
+
+                for term in query:
+                    w_t_d = self.compute_weight_term_document(term, document, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg, idf)
+                    document_vector.append(w_t_d)
+                    score += w_t_d
+
+                document_scores[document] = score
 
 
         return document_scores

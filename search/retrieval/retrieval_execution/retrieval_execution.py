@@ -161,10 +161,12 @@ class RetrievalExecution:
         return ranked_docs
 
     def lm_ranking(self):
+        start_time = datetime.datetime.now()
         lm = Language_model(miu=1303, g=0.2)
 
-        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
+        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
                                    use_pitman_yor_process=True)
+        print(f"ranking the docs with the lm model took {datetime.datetime.now() - start_time}")
         return ranked_docs
 
     def execute_ranking(self, used_model, start_date, end_date):

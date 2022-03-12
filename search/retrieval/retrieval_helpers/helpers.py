@@ -96,7 +96,6 @@ def consecutive_occ(inverted_index_doc):
             count = 0
     return consecutive
 
-
 def write_results_to_file(ranked_docs, used_model, pre_processed_query):
     filename = used_model
     for term in pre_processed_query:
@@ -131,6 +130,10 @@ def find_boolean_operators(query):
                                            query)  # TO DO: Maybe change to "if term in query" more readable - this implementation works with more than 1 AND, OR etc.
     return boolean_operators_present
 
+
+def split_list(a_list):
+    half = len(a_list)//2
+    return a_list[:half], a_list[half:]
 
 def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_bool):
     # this will be executed if the user is not re-running for the uncorrected query
