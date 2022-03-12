@@ -234,3 +234,19 @@ def apply_spellchecking(term, nyse_listed, is_finance_abbreviation, spell):
         corrected_term = spell.correction(term)
     return corrected_term
 
+def seperate_mix(query):
+    query_updated = []
+
+    for i, t in enumerate(query):
+        if len(query[i]) > 0:
+            query_updated.append(query[i])
+
+    singles = []
+    phrases = []
+    for term in query_updated:
+        if len(term) == 1:
+            singles.append(term[0])
+        else:
+            phrases.append(term)
+
+    return singles, phrases

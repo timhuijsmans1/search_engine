@@ -38,7 +38,10 @@ class Language_model:
         if document not in mini_index[term][1].keys():
             w_t_d = 0
         else:
-            tf = len(mini_index[term][1][document])
+            if type(mini_index[term][1][document]) is list:
+                tf = len(mini_index[term][1][document])
+            else:
+                tf = mini_index[term][1][document]
             cf = mini_index[term][0]
 
             discounted_tf = max((tf - g * (tf ** g)), 0)

@@ -11,6 +11,7 @@ from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import sort_document_scores
 from retrieval.retrieval_helpers.helpers import consecutive_occ
 from retrieval.retrieval_helpers.helpers import split_list
+from retrieval.retrieval_helpers.helpers import seperate_mix
 
 class Bm25_model:
 
@@ -27,7 +28,11 @@ class Bm25_model:
 
                 w_t_d = 0
             else:
-                tf = len(positional_inverted_index[term][1][document])
+                if type(positional_inverted_index[term][1][document]) is list:
+                    tf = len(positional_inverted_index[term][1][document])
+                else:
+                    tf = positional_inverted_index[term][1][document]
+
                 d = doc_size[str(document)] / l_avg
                 w_t_d = idf * (tf / ((k * d) + tf + 0.5))
 
@@ -150,21 +155,10 @@ class Bm25_model:
     def retrieval(self, query, inv_ind, N, doc_size, l_tot, date_ind, date_bool):
 
         start = time.time()
-        query_updated = []
-
-        for i, t in enumerate(query):
-            if len(query[i]) > 0:
-                query_updated.append(query[i])
-
-        singles = []
-        phrases = []
         t_docs = []
         p_docs = []
-        for term in query_updated:
-            if len(term) == 1:
-                singles.append(term[0])
-            else:
-                phrases.append(term)
+
+        singles, phrases = seperate_mix(query)
         tot_docs = {}
         if singles:
             t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot, date_ind, date_bool)

@@ -2,11 +2,12 @@ import json
 import ujson
 import line_profiler
 import atexit
+from retrieval.retrieval_helpers.helpers import seperate_mix
 
 profile = line_profiler.LineProfiler()
 atexit.register(profile.print_stats)
 
-def load_mini_index(word_list, index_path, word2byte):
+def load_mini_index(word_list, index_path_1, index_path_2, word2byte_tf, word2byte):
     """
     input params:
     word_list : list
@@ -19,24 +20,48 @@ def load_mini_index(word_list, index_path, word2byte):
                         {word: [document_count, [ [doc_number, [positions]], [doc_number, [positions]], ... ]}
     """
     mini_index = {}
+    singles_updated = []
 
-    with open(index_path, 'r') as f:
+    singles, phrases = seperate_mix(word_list)
+    for term in singles:
+        singles_updated.append([term])
 
-        # only load and decode the index of each word once
-        for word in set(sum(word_list, [])):
-            try:  # if query word is in our vocabulary
-                start_byte = word2byte[word][0]
-                bytes_to_read = word2byte[word][1]
+    if singles_updated:
+        with open(index_path_1, 'r') as f:
+            # only load and decode the index of each word once
+            for word in set(sum(singles_updated, [])):
+                try:  # if query word is in our vocabulary
+                    start_byte = word2byte_tf[word][0]
+                    bytes_to_read = word2byte_tf[word][1]
 
-                # find the bytes where we need to start reading
-                f.seek(start_byte)
-                inverted_list = f.read(bytes_to_read)
+                    # find the bytes where we need to start reading
+                    f.seek(start_byte)
+                    inverted_list = f.read(bytes_to_read)
 
-                # add inverted list to the index we want to retrieve
-                inverted_list_dict = ujson.loads(inverted_list)
-                mini_index = {**mini_index, **inverted_list_dict}
-                
-            except:
-                pass # if query word is not in our vocabulary
-    
+                    # add inverted list to the index we want to retrieve
+                    inverted_list_dict = ujson.loads(inverted_list)
+                    mini_index = {**mini_index, **inverted_list_dict}
+
+                except:
+                    pass # if query word is not in our vocabulary
+
+    if phrases:
+        with open(index_path_2, 'r') as f:
+            # only load and decode the index of each word once
+            for word in set(sum(phrases, [])):
+                try:  # if query word is in our vocabulary
+                    start_byte = word2byte[word][0]
+                    bytes_to_read = word2byte[word][1]
+
+                    # find the bytes where we need to start reading
+                    f.seek(start_byte)
+                    inverted_list = f.read(bytes_to_read)
+
+                    # add inverted list to the index we want to retrieve
+                    inverted_list_dict = ujson.loads(inverted_list)
+                    mini_index = {**mini_index, **inverted_list_dict}
+
+                except:
+                    pass  # if query word is not in our vocabulary
+
     return mini_index

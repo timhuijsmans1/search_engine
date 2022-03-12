@@ -25,6 +25,7 @@ from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 from retrieval.retrieval_helpers.helpers import json_loader
 from retrieval.retrieval_helpers.helpers import apply_spellchecking
+from retrieval.retrieval_helpers.helpers import seperate_mix
 
 from retrieval.retrieval_helpers.helpers import date2doc_initializer
 from retrieval.retrieval_models.language_model.language_model import Language_model
@@ -110,13 +111,13 @@ class RetrievalExecution:
 
         start_time = datetime.datetime.now()
 
+        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index_tf.json", "retrieval/data/final_index.json", self.word2byte_tf, self.word2byte)
         # position lists are required, mini index will look like {word: [doc_count, {doc_id: [position]}]}
-        if self.phrase_bool or self.proximity_query:
-            self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
-
-        # only need term frequencies, mini index will look like {word: [doc_count, {doc_id: term_frequency}]}
-        else:
-            self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index_tf.json", self.word2byte_tf)
+        # if phrases:
+        #     self.mini_index = load_mini_index(phrases, "retrieval/data/final_index.json", self.word2byte)
+        # # only need term frequencies, mini index will look like {word: [doc_count, {doc_id: term_frequency}]}
+        # if singles_updated:
+        #     self.mini_index = load_mini_index(singles_updated, "retrieval/data/final_index_tf.json", self.word2byte_tf)
 
         print(self.mini_index.keys())
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
