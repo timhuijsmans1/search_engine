@@ -1,4 +1,5 @@
 import json
+import ujson
 import time
 
 import numpy as np
@@ -106,24 +107,10 @@ class RetrievalExecution:
         self.N = len(self.doc_sizes.keys())
         self.l_tot = sum(list(self.doc_sizes.values()))
 
-    def mini_index_builder(self, retrieval_method):
-        #TODO: activate the commented out part, and change the models to accept tf or pos lists
-        # # disk loading method
-        # # if phrase or proxi search is activated, we want to load the index with position lists
-        # # The format of mini_index will be {word: [doc_count, {doc_id: [pos]}]}
-        # if self.phrase_bool == True or self.proximity_query == True:
-        #     self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
-        
-        # # if phrase search is not activated, we want to load the index with tfs
-        # # The format of mini_index will be {word: [doc_count, {doc_id: tf}]}
-        # else:
-        #     self.mini_index = decoder(self.encoded_index, self.pre_processed_query)
+    def mini_index_builder(self):
 
         start_time = datetime.datetime.now()
-        if retrieval_method == "from disk":
-            self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
-        if retrieval_method == "from memory":
-            self.mini_index = decoder(self.encoded_index, self.pre_processed_query)
+        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
 
         print(self.mini_index.keys())
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
@@ -182,7 +169,7 @@ class RetrievalExecution:
 
     def execute_ranking(self, used_model, start_date, end_date):
         # returns false if none of the query terms match the index
-        if self.mini_index_builder("from disk") == False:
+        if self.mini_index_builder() == False:
             return False
 
         else:
