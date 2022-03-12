@@ -6,6 +6,7 @@ from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
 from retrieval.retrieval_helpers.helpers import sort_document_scores
 from retrieval.retrieval_helpers.helpers import consecutive_occ
+from retrieval.retrieval_helpers.helpers import split_list
 
 
 class Language_model:
@@ -60,13 +61,17 @@ class Language_model:
 
     def retrieval(self, query, inv_ind, N, doc_size, l_tot, use_pitman_yor_process):
 
+        query_updated = []
+
+        for i, t in enumerate(query):
+            if len(query[i]) > 0:
+                query_updated.append(query[i])
+
         singles = []
         phrases = []
         t_docs = []
         p_docs = []
-        for term in query:
-            if len(term) == 0:
-                continue  #  spellchecker loops over list but then some terms, e.g. "is"/ "new" get removed by the stopwords
+        for term in query_updated:
             if len(term) == 1:
                 singles.append(term[0])
             else:
@@ -130,6 +135,11 @@ class Language_model:
         documents_appearing_in = {}
         query_term_frequency = {}
         union_of_documents = []
+        union_bool = False
+        intersection0 = []
+        intersection1 = []
+        intersection2 = []
+
 
         for term in query:
             if term in mini_index.keys():
@@ -138,34 +148,78 @@ class Language_model:
                     term)  # doing this here so we do not repeat it for each document
 
         if documents_appearing_in:
-            union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+
+            if len(list(documents_appearing_in.keys())) > 1:
+                intersection0 = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+                if len(intersection0) < 100:
+                    d1, d2 = split_list(list(documents_appearing_in.values()))
+                    intersection1 = sorted(reduce(set.intersection, map(set, d1)))
+                    intersection2 = sorted(reduce(set.intersection, map(set, d2)))
+                    if len(set(intersection1 + intersection2)) < 100:
+                        union_bool = True
+                        union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+            else:
+                union_bool = True
+                union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+
         length_collection = l_tot  # length of the collection in terms
         # g = self.g  # discounting parameter - as used in paper "Improvements to BM25 and Language Model examined - used for pyp implementation
         length_query = len(query)  # length of the query
         document_scores = {}
-        for document in union_of_documents:
-            score = 0
-            for term in query:
-                if term in mini_index.keys():
-                    if use_pitman_yor_process:
-                        w_t_d = self.compute_weight_term_document_pyp(query_term_frequency[term], term, mini_index,
-                                                                      document, length_collection)
-                        score += w_t_d
-                    else:  # use lm-dirichlet smoothing
-                        self.miu = 1089  # Different value identified in the paper compared to those used when
-                        # pitman_yor_process is used
-                        w_t_d = self.compute_weight_term_document(query_term_frequency[term], term, mini_index,
-                                                                  document,
-                                                                  length_collection)
-                        score += w_t_d
-            L_d = doc_sizes[str(document)]
-            if use_pitman_yor_process:
-                dicsounted_l_d = max((L_d - self.g * (L_d ** self.g)), 0)
-                final_score = length_query * math.log(1 - (dicsounted_l_d / (L_d + self.miu))) + score
-            else:
-                final_score = length_query * math.log(self.miu / (L_d + self.miu)) + score
-            document_scores[document] = final_score
-        ## TO DO - Here find score with exactly equal values - or within 10% range - should be duplicates so only keep one
+
+        if not union_bool:
+            total_inter = set(intersection0+intersection1+intersection2)
+            for document in total_inter:
+                score = 0
+                for term in query:
+                    if term in mini_index.keys():
+                        if use_pitman_yor_process:
+                            w_t_d = self.compute_weight_term_document_pyp(query_term_frequency[term], term, mini_index,
+                                                                          document, length_collection)
+                            score += w_t_d
+                        else:  # use lm-dirichlet smoothing
+                            self.miu = 1089  # Different value identified in the paper compared to those used when
+                            # pitman_yor_process is used
+                            w_t_d = self.compute_weight_term_document(query_term_frequency[term], term, mini_index,
+                                                                      document,
+                                                                      length_collection)
+                            score += w_t_d
+                L_d = doc_sizes[str(document)]
+                if use_pitman_yor_process:
+                    dicsounted_l_d = max((L_d - self.g * (L_d ** self.g)), 0)
+                    final_score = length_query * math.log(1 - (dicsounted_l_d / (L_d + self.miu))) + score
+                else:
+                    final_score = length_query * math.log(self.miu / (L_d + self.miu)) + score
+                document_scores[document] = final_score
+            ## TO DO - Here find score with exactly equal values - or within 10% range - should be duplicates so only keep one
+        else:
+
+            if not union_of_documents:
+                return False
+
+
+            for document in union_of_documents:
+                score = 0
+                for term in query:
+                    if term in mini_index.keys():
+                        if use_pitman_yor_process:
+                            w_t_d = self.compute_weight_term_document_pyp(query_term_frequency[term], term, mini_index,
+                                                                          document, length_collection)
+                            score += w_t_d
+                        else:  # use lm-dirichlet smoothing
+                            self.miu = 1089  # Different value identified in the paper compared to those used when
+                            # pitman_yor_process is used
+                            w_t_d = self.compute_weight_term_document(query_term_frequency[term], term, mini_index,
+                                                                      document,
+                                                                      length_collection)
+                            score += w_t_d
+                L_d = doc_sizes[str(document)]
+                if use_pitman_yor_process:
+                    dicsounted_l_d = max((L_d - self.g * (L_d ** self.g)), 0)
+                    final_score = length_query * math.log(1 - (dicsounted_l_d / (L_d + self.miu))) + score
+                else:
+                    final_score = length_query * math.log(self.miu / (L_d + self.miu)) + score
+                document_scores[document] = final_score
 
         return document_scores
 

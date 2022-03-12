@@ -69,6 +69,8 @@ class RetrievalExecution:
             self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
             return
 
+
+
         # pre process query
         self.pre_processed_query = []
 
@@ -109,7 +111,7 @@ class RetrievalExecution:
         # # The format of mini_index will be {word: [doc_count, {doc_id: [pos]}]}
         # if self.phrase_bool == True or self.proximity_query == True:
         #     self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
-        
+
         # # if phrase search is not activated, we want to load the index with tfs
         # # The format of mini_index will be {word: [doc_count, {doc_id: tf}]}
         # else:
@@ -175,7 +177,6 @@ class RetrievalExecution:
 
         ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
                                    use_pitman_yor_process=True)
-
         print(f"ranking the docs with the lm model took {datetime.datetime.now() - start_time}")
         return ranked_docs
 
