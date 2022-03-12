@@ -1,0 +1,14 @@
+.*
+!.gitignore
+**/__pycache__
+*.txt
+*.json
+*test.py
+*.pem
+*.ini
+*.tsv
+migrations
+!retrieval_test.py
+!5_article_test.tsv
+!englishST.txt
+*.zip
