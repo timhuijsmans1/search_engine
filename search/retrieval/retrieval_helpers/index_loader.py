@@ -1,4 +1,9 @@
 import json
+import line_profiler
+import atexit
+
+profile = line_profiler.LineProfiler()
+atexit.register(profile.print_stats)
 
 def load_mini_index(word_list, index_path, word2byte):
     """
