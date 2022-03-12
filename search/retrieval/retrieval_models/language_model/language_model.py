@@ -59,7 +59,7 @@ class Language_model:
         w_p_d = math.log((tf / self.miu) * (L_c / cf) + 1)
         return w_p_d
 
-    def retrieval(self, query, inv_ind, N, doc_size, l_tot, use_pitman_yor_process):
+    def retrieval(self, query, inv_ind, N, doc_size, l_tot, date_ind, date_bool, use_pitman_yor_process):
 
         query_updated = []
 
@@ -78,9 +78,9 @@ class Language_model:
                 phrases.append(term)
         tot_docs = {}
         if singles:
-            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot, use_pitman_yor_process)
+            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot, date_ind, date_bool, use_pitman_yor_process)
         if phrases:
-            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot)
+            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot, date_ind, date_bool)
 
         if t_docs and p_docs:
             tot_keys = set(list(t_docs.keys()) + list(p_docs.keys()))
@@ -94,7 +94,7 @@ class Language_model:
         sorted_docs = sort_document_scores(tot_docs)
         return sorted_docs
 
-    def phrase_rank(self, query, mini_index, N, doc_sizes, length_collection):
+    def phrase_rank(self, query, mini_index, N, doc_sizes, length_collection, date_ind, date_bool):
 
         document_scores = {}
         for phrase in query:
@@ -104,7 +104,13 @@ class Language_model:
             for term in phrase:
                 documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
 
-            intersection_of_documents = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
+            if date_bool:
+                intersection_of_documents = set(
+                    reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind)
+
+            else:
+                intersection_of_documents = reduce(set.intersection, map(set, documents_appearing_in.values()))
+
             for doc in intersection_of_documents:
                 positional_index = []
                 for term in phrase:
@@ -130,7 +136,7 @@ class Language_model:
 
         return document_scores
 
-    def rank(self, query, mini_index, N, doc_sizes, l_tot, use_pitman_yor_process):
+    def rank(self, query, mini_index, N, doc_sizes, l_tot, date_ind, date_bool, use_pitman_yor_process):
 
         documents_appearing_in = {}
         query_term_frequency = {}
@@ -149,18 +155,37 @@ class Language_model:
 
         if documents_appearing_in:
 
-            if len(list(documents_appearing_in.keys())) > 1:
-                intersection0 = sorted(reduce(set.intersection, map(set, documents_appearing_in.values())))
-                if len(intersection0) < 100:
-                    d1, d2 = split_list(list(documents_appearing_in.values()))
-                    intersection1 = sorted(reduce(set.intersection, map(set, d1)))
-                    intersection2 = sorted(reduce(set.intersection, map(set, d2)))
-                    if len(set(intersection1 + intersection2)) < 100:
-                        union_bool = True
-                        union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+            if date_bool:
+                if len(list(documents_appearing_in.keys())) > 1:
+                    intersection0 = set(
+                        reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                    if len(intersection0) < 100:
+                        d1, d2 = split_list(list(documents_appearing_in.values()))
+                        intersection1 = set(reduce(set.intersection, map(set, d1))).intersection(date_ind)
+                        intersection2 = set(reduce(set.intersection, map(set, d2))).intersection(date_ind)
+                        if len(set(intersection1 + intersection2)) < 100:
+                            union_bool = True
+                            union_of_documents = set(
+                                reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                else:
+                    union_bool = True
+                    union_of_documents = set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(
+                        date_ind)
+
             else:
-                union_bool = True
-                union_of_documents = sorted(reduce(set.union, map(set, documents_appearing_in.values())))
+                if len(list(documents_appearing_in.keys())) > 1:
+                    intersection0 = reduce(set.intersection, map(set, documents_appearing_in.values()))
+                    if len(intersection0) < 100:
+                        d1, d2 = split_list(list(documents_appearing_in.values()))
+                        intersection1 = reduce(set.intersection, map(set, d1))
+                        intersection2 = reduce(set.intersection, map(set, d2))
+                        if len(set(intersection1 + intersection2)) < 100:
+                            union_bool = True
+                            union_of_documents = reduce(set.union, map(set, documents_appearing_in.values()))
+
+                else:
+                    union_bool = True
+                    union_of_documents = reduce(set.union, map(set, documents_appearing_in.values()))
 
         length_collection = l_tot  # length of the collection in terms
         # g = self.g  # discounting parameter - as used in paper "Improvements to BM25 and Language Model examined - used for pyp implementation
