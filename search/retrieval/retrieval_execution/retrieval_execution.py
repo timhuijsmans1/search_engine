@@ -41,10 +41,6 @@ class RetrievalExecution:
     date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
 
-    # print("loading and compressing index")
-    # encoded_index = index_compressor('retrieval/data/final_index.json')
-    # print(f"encoded index size: {total_size(encoded_index) / 1000000} mb")
-
     print(f"date2doc size: {total_size(date2doc) / 1000000} mb")
     print(f"doc_sizes size: {total_size(doc_sizes) / 1000000} mb")
     print(f"word2byte size: {total_size(word2byte) / 1000000} mb")
@@ -71,8 +67,6 @@ class RetrievalExecution:
         if len(bool_operators) > 0:
             self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
             return
-
-
 
         # pre process query
         self.pre_processed_query = []
