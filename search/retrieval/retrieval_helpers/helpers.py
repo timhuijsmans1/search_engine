@@ -8,6 +8,12 @@ from datetime import datetime
 from textblob import TextBlob
 from spellchecker import SpellChecker
 
+import line_profiler
+import atexit
+
+profile = line_profiler.LineProfiler()
+atexit.register(profile.print_stats)
+
 
 def helper_example():
     # do something

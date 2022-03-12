@@ -38,16 +38,14 @@ class RetrievalExecution:
 
     print("loading in search dictionaries")
     word2byte = json_loader("retrieval/data/word2byte.json")
+    word2byte_tf = json_loader("retrieval/data/word2byte_tf.json")
     date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
-
-    # print("loading and compressing index")
-    # encoded_index = index_compressor('retrieval/data/final_index.json')
-    # print(f"encoded index size: {total_size(encoded_index) / 1000000} mb")
 
     print(f"date2doc size: {total_size(date2doc) / 1000000} mb")
     print(f"doc_sizes size: {total_size(doc_sizes) / 1000000} mb")
     print(f"word2byte size: {total_size(word2byte) / 1000000} mb")
+    print(f"word2byte_tf size: {total_size(word2byte_tf) / 1000000} mb")
     
     abv_dict = abv_loader()
 
@@ -56,7 +54,7 @@ class RetrievalExecution:
             query,
             first_execution
     ):
-
+        
         preprocessing = Preprocessing()
 
         self.set_initial_values(query)
@@ -72,18 +70,18 @@ class RetrievalExecution:
             self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
             return
 
-
-
         # pre process query
         self.pre_processed_query = []
 
         if not self.phrase_bool:
+            initialising_time = datetime.datetime.now()
             query, self.has_term_been_corrected = spellcheck_query(
                 query, self.abv_bool, first_execution,
                 self.phrase_bool)  # only spell check query if it's not boolean or proximity retrieval
             self.corrected_query = query  # save the spellchecked query before pre processing it
             for q in query.split():
                 self.pre_processed_query.append(preprocessing.apply_preprocessing(q))
+            print(f"spellchecking took {datetime.datetime.now() - initialising_time}")
         else:
             r = r'"(.*?)"'
             if re.split(r, query):
@@ -111,7 +109,14 @@ class RetrievalExecution:
     def mini_index_builder(self):
 
         start_time = datetime.datetime.now()
-        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
+
+        # position lists are required, mini index will look like {word: [doc_count, {doc_id: [position]}]}
+        if self.phrase_bool or self.proximity_query:
+            self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
+
+        # only need term frequencies, mini index will look like {word: [doc_count, {doc_id: term_frequency}]}
+        else:
+            self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index_tf.json", self.word2byte_tf)
 
         print(self.mini_index.keys())
         print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
