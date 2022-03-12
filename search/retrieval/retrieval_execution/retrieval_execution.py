@@ -8,7 +8,6 @@ import pandas as pd
 import csv
 import re
 
-from retrieval.models import TestArticle
 from retrieval.retrieval_helpers.index_loader import load_mini_index
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import write_results_to_file
@@ -17,7 +16,7 @@ from retrieval.retrieval_helpers.helpers import spellcheck_query
 from retrieval.retrieval_helpers.helpers import is_proximity_query
 from retrieval.retrieval_helpers.helpers import find_boolean_operators
 from retrieval.retrieval_helpers.helpers import is_phrase_bool
-from retrieval.retrieval_helpers.helpers import add_abv_expansion
+from retrieval.retrieval_helpers.helpers import database_retrieval
 from retrieval.retrieval_helpers.helpers import set_proximity_values
 from retrieval.retrieval_helpers.helpers import prepare_boolean_query
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
@@ -141,9 +140,7 @@ class RetrievalExecution:
 
         return doc_numbers
 
-    def database_retrieval(self, doc_numbers):
-        print("retrieving from db")
-        return {doc_no: TestArticle.objects.get(pk=doc_no) for doc_no in doc_numbers}
+
 
     def valid_index(self):
         """
@@ -159,8 +156,7 @@ class RetrievalExecution:
     def bm25_ranking(self):
         start_time = datetime.datetime.now()
         bm25 = Bm25_model()
-        ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot
-                                      )
+        ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
 
         print(f"ranking the docs with the bm25 model took {datetime.datetime.now() - start_time}")
 
@@ -193,31 +189,31 @@ class RetrievalExecution:
             # document ranking
             start_time = datetime.datetime.now()
 
-            if self.proximity_query:  # if we are doing a proximtiy query no need to check which model is used,
+            if self.proximity_query:  # if we are doing a proximity query no need to check which model is used,
                 # just retrieve the docs
                 ranked_doc_numbers = proximity_retrieval(self.mini_index, self.proximity_value)
-                ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
+                ranked_article_objects = database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
             elif self.boolean_search:
                 ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N,
                                                        self.positions_with_parentheses, self.pre_processed_query)
-                ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
+                ranked_article_objects = database_retrieval(ranked_doc_numbers)
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
 
             if used_model == "bm25":
-                ranked_doc_numbers = self.bm25_ranking()
+                ranked_articles = self.bm25_ranking()
 
             if used_model == "vsm":
                 ranked_doc_numbers = self.vsm_ranking()
 
             if used_model == "lm":
-                ranked_doc_numbers = self.lm_ranking()
+                ranked_articles = self.lm_ranking()
 
             start_time = datetime.datetime.now()
             # these can be re-ordered according to their date
-            ranked_article_objects = self.database_retrieval(ranked_doc_numbers)
+           # ranked_article_objects = database_retrieval(ranked_doc_numbers)
             print(f"database retrieval took {datetime.datetime.now() - start_time}")
 
-            return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
+            return ranked_articles, self.has_term_been_corrected, self.corrected_query, self.initial_query

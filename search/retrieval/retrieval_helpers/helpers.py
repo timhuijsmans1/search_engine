@@ -2,7 +2,7 @@ import json
 import re
 import csv
 import pandas as pd
-
+from retrieval.models import TestArticle
 from datetime import datetime
 from textblob import TextBlob
 from spellchecker import SpellChecker
@@ -112,11 +112,53 @@ def write_results_to_file(ranked_docs, used_model, pre_processed_query):
             f.write("%d\n" % doc_id)
 
 
-def sort_document_scores(document_scores):
+def sort_document_scores(document_scores, query):
     sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
-    print(sorted_document_scores[:20])
     sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
-    return sorted_document_ids
+    flattened_query = set(sum(query, []))
+    returned_articles = database_retrieval(sorted_document_ids)
+    reranked_articles = rerank_weighing_title_terms(1.08, returned_articles, flattened_query, sorted_document_scores)
+    return reranked_articles
+
+
+def rerank_weighing_title_terms(weight, articles, flattened_query, sorted_document_scores):
+
+    date_weights = {
+        0: 1.10,
+        1: 1.09,
+        2: 1.08,
+        3: 1.07,
+        4: 1.06,
+        5: 1.05,
+        6: 1.03,
+        7: 1.02,
+        8: 1.01,
+        9: 1.005,
+        10: 1.004
+    }
+    reranked_scores = dict(sorted_document_scores[:100])
+    today = datetime.today()
+    for article_id, article_object in articles.items():
+        title = article_object.title.split()
+        title = [word.lower() for word in title]  # compare regardless of case
+        date = article_object.publication_date
+        days_difference = (today - date).days
+        if days_difference in date_weights.keys():
+            reranked_scores[article_id] = reranked_scores[article_id] * date_weights[days_difference]
+        for term in title:
+            if term in flattened_query:
+                reranked_scores[article_id] = reranked_scores[article_id] * weight
+    reranked_scores = sorted(reranked_scores.items(), key=lambda x: x[1], reverse=True)
+    reranked_document_ids = [id_score[0] for id_score in reranked_scores]
+    reranked_articles = {}
+    for id in reranked_document_ids:
+        reranked_articles[id] = articles[id]
+    return reranked_articles
+
+
+def database_retrieval(doc_numbers):
+    print("retrieving from db")
+    return {doc_no: TestArticle.objects.get(pk=doc_no) for doc_no in doc_numbers}
 
 
 def is_proximity_query(query):
@@ -230,3 +272,4 @@ def apply_spellchecking(term, nyse_listed, is_finance_abbreviation, spell):
     else:
         corrected_term = spell.correction(term)
     return corrected_term
+

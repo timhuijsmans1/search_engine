@@ -91,8 +91,8 @@ class Language_model:
         elif p_docs:
             tot_docs = p_docs
 
-        sorted_docs = sort_document_scores(tot_docs)
-        return sorted_docs
+        sorted_articles = sort_document_scores(tot_docs, query_updated)
+        return sorted_articles
 
     def phrase_rank(self, query, mini_index, N, doc_sizes, length_collection):
 
