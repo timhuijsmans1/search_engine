@@ -23,8 +23,6 @@ from retrieval.retrieval_helpers.helpers import prepare_boolean_query
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 from retrieval.retrieval_helpers.helpers import json_loader
-from retrieval.retrieval_helpers.helpers import apply_spellchecking
-
 from retrieval.retrieval_helpers.helpers import date2doc_initializer
 from retrieval.retrieval_models.language_model.language_model import Language_model
 from retrieval.retrieval_models.proximity_retrieval.proximity_retrieval import proximity_retrieval
@@ -71,8 +69,6 @@ class RetrievalExecution:
             self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
             return
 
-
-
         # pre process query
         self.pre_processed_query = []
 
@@ -96,7 +92,7 @@ class RetrievalExecution:
                 self.pre_processed_query.append(preprocessing.apply_preprocessing(p))
         return
 
-    def set_initial_values(self,query):
+    def set_initial_values(self, query):
         self.initial_query = query
         self.has_term_been_corrected = False
         self.corrected_query = ""
@@ -174,10 +170,13 @@ class RetrievalExecution:
         return ranked_docs
 
     def lm_ranking(self):
+        start_time = datetime.datetime.now()
         lm = Language_model(miu=1303, g=0.2)
 
-        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, l_tot,
+        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
                                    use_pitman_yor_process=True)
+
+        print(f"ranking the docs with the lm model took {datetime.datetime.now() - start_time}")
         return ranked_docs
 
     def execute_ranking(self, used_model, start_date, end_date):

@@ -65,6 +65,8 @@ class Language_model:
         t_docs = []
         p_docs = []
         for term in query:
+            if len(term) == 0:
+                continue  #  spellchecker loops over list but then some terms, e.g. "is"/ "new" get removed by the stopwords
             if len(term) == 1:
                 singles.append(term[0])
             else:
@@ -92,7 +94,6 @@ class Language_model:
         document_scores = {}
         for phrase in query:
             documents_appearing_in = {}
-            phrase = set(phrase)
             tf = {}
             df = 0
             for term in phrase:

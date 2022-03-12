@@ -116,6 +116,7 @@ def write_results_to_file(ranked_docs, used_model, pre_processed_query):
 
 def sort_document_scores(document_scores):
     sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
+    print(sorted_document_scores[:20])
     sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
     return sorted_document_ids
 
@@ -138,7 +139,7 @@ def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_boo
     if is_first_run:
         spell = SpellChecker()
         corrected_query = []
-        nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nyse_listed_companies.csv")
+        nyse_listed = pd.read_csv("retrieval/retrieval_helpers/listed_companies_common_words_removed.csv")
         # if is_phrase_bool:
         #     r = r'"(.*?)"'
         #     if re.split(r, query):
@@ -172,10 +173,20 @@ def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_boo
         return query, False
 
 def pre_process_nasdaq_list():
+    spell = SpellChecker()
     nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nasdaq_screener.csv")
     nyse_listed['Symbol'] = nyse_listed['Symbol'].str.lower()
     nyse_listed['Name'] = nyse_listed['Name'].str.lower()
     nyse_listed.to_csv("nyse_listed_companies.csv")
+
+    indexes_to_be_removed = []
+    for index, row in nyse_listed.iterrows():
+        spellcheck_term = spell.correction(row['Symbol'])
+        if spellcheck_term == row['Symbol']:
+            indexes_to_be_removed.append(index)
+    cleaned_df = nyse_listed.drop(indexes_to_be_removed, axis=0)
+    cleaned_df.to_csv("listed_companies_common_words_removed.csv")
+
 
 
 def is_phrase_bool(query):
@@ -217,4 +228,3 @@ def apply_spellchecking(term, nyse_listed, is_finance_abbreviation, spell):
     else:
         corrected_term = spell.correction(term)
     return corrected_term
-
