@@ -45,6 +45,7 @@ def results(request):
         # check if dates are correct
         valid_bool, start_date_obj, end_date_obj = date_checker(date_start, date_end)
         if valid_bool == False:
+            # User will be warned by JS message, so this is just a backend catch
             return redirect('retrieval:index')
         else:
             ranked_article_objects, has_term_been_corrected, corrected_query, original_query = retrieval_execution.execute_ranking(
@@ -66,6 +67,11 @@ def results(request):
         # query DB with docnumbers
         results = list(ranked_article_objects.values())
 
+        if date_start and date_end:    
+            # change dates to be accepted as url parameters
+            date_start = date_start.replace("/", "")
+            date_end = date_end.replace("/", "")
+
         context = {
             'results': results,
             'term_been_corrected': has_term_been_corrected,
@@ -82,21 +88,23 @@ def results(request):
 def rerun_results(request, category, query, date_start, date_end):
     first_execution_run = False
 
+    
+
     retrieval_execution = RetrievalExecution(query, first_execution_run)
 
     # check if the dates have an actual value
     if date_start == "None" and date_end == "None":
         date_start = date_end = None
-        ranked_article_objects, has_term_been_corrected, corrected_query, original_query = retrieval_execution.execute_ranking(
-                           "bm25",
-                           date_start,
-                           date_end,
-        )
     # date filter search
     else:
-        pass
-        # TODO
-        # turn stringified datetimes into datetime objects and execute datetime search
+        date_start = datetime.strptime(date_start, '%m%d%Y')
+        date_end = datetime.strptime(date_end, '%m%d%Y')
+    
+    ranked_article_objects, has_term_been_corrected, corrected_query, original_query = retrieval_execution.execute_ranking(
+                        "bm25",
+                        date_start,
+                        date_end,
+    )
 
     # Only return results if relevant documents are found
     if ranked_article_objects:
