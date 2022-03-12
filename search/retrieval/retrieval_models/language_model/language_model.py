@@ -105,11 +105,11 @@ class Language_model:
                 documents_appearing_in[term] = extract_all_documents_term_appears_in(mini_index[term][1])
 
             if date_bool:
-                intersection_of_documents = set(
-                    reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                intersection_of_documents = list(set(
+                    reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind))
 
             else:
-                intersection_of_documents = reduce(set.intersection, map(set, documents_appearing_in.values()))
+                intersection_of_documents = list(reduce(set.intersection, map(set, documents_appearing_in.values())))
 
             for doc in intersection_of_documents:
                 positional_index = []
@@ -158,34 +158,34 @@ class Language_model:
             if date_bool:
                 if len(list(documents_appearing_in.keys())) > 1:
                     intersection0 = set(
-                        reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                        list(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind))
                     if len(intersection0) < 100:
                         d1, d2 = split_list(list(documents_appearing_in.values()))
-                        intersection1 = set(reduce(set.intersection, map(set, d1))).intersection(date_ind)
-                        intersection2 = set(reduce(set.intersection, map(set, d2))).intersection(date_ind)
+                        intersection1 = list(set(reduce(set.intersection, map(set, d1))).intersection(date_ind))
+                        intersection2 = list(set(reduce(set.intersection, map(set, d2))).intersection(date_ind))
                         if len(set(intersection1 + intersection2)) < 100:
                             union_bool = True
-                            union_of_documents = set(
-                                reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                            union_of_documents = list(set(
+                                reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind))
                 else:
                     union_bool = True
-                    union_of_documents = set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(
-                        date_ind)
+                    union_of_documents = list(set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(
+                        date_ind))
 
             else:
                 if len(list(documents_appearing_in.keys())) > 1:
                     intersection0 = reduce(set.intersection, map(set, documents_appearing_in.values()))
                     if len(intersection0) < 100:
                         d1, d2 = split_list(list(documents_appearing_in.values()))
-                        intersection1 = reduce(set.intersection, map(set, d1))
-                        intersection2 = reduce(set.intersection, map(set, d2))
+                        intersection1 = list(reduce(set.intersection, map(set, d1)))
+                        intersection2 = list(reduce(set.intersection, map(set, d2)))
                         if len(set(intersection1 + intersection2)) < 100:
                             union_bool = True
-                            union_of_documents = reduce(set.union, map(set, documents_appearing_in.values()))
+                            union_of_documents = list(reduce(set.union, map(set, documents_appearing_in.values())))
 
                 else:
                     union_bool = True
-                    union_of_documents = reduce(set.union, map(set, documents_appearing_in.values()))
+                    union_of_documents = list(reduce(set.union, map(set, documents_appearing_in.values())))
 
         length_collection = l_tot  # length of the collection in terms
         # g = self.g  # discounting parameter - as used in paper "Improvements to BM25 and Language Model examined - used for pyp implementation

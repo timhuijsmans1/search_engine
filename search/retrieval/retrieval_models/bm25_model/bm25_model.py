@@ -209,37 +209,37 @@ class Bm25_model:
 
             if date_bool:
                 if len(list(documents_appearing_in.keys())) > 1:
-                    intersection0 = set(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                    intersection0 = list(set(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind))
                     if len(intersection0) < 100:
                         d1, d2 = split_list(list(documents_appearing_in.values()))
-                        intersection1 = set(reduce(set.intersection, map(set, d1))).intersection(date_ind)
-                        intersection2 = set(reduce(set.intersection, map(set, d2))).intersection(date_ind)
+                        intersection1 = list(set(reduce(set.intersection, map(set, d1))).intersection(date_ind))
+                        intersection2 = list(set(reduce(set.intersection, map(set, d2))).intersection(date_ind))
                         if len(set(intersection1 + intersection2)) < 100:
                             union_bool = True
-                            union_of_documents = set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                            union_of_documents = list(set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind))
                 else:
                     union_bool = True
-                    union_of_documents = set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                    union_of_documents = list(set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind))
 
             else:
                 if len(list(documents_appearing_in.keys())) > 1:
-                    intersection0 = reduce(set.intersection, map(set, documents_appearing_in.values()))
+                    intersection0 = list(reduce(set.intersection, map(set, documents_appearing_in.values())))
                     if len(intersection0) < 100:
                         d1, d2 = split_list(list(documents_appearing_in.values()))
-                        intersection1 = reduce(set.intersection, map(set, d1))
-                        intersection2 = reduce(set.intersection, map(set, d2))
+                        intersection1 = list(reduce(set.intersection, map(set, d1)))
+                        intersection2 = list(reduce(set.intersection, map(set, d2)))
                         if len(set(intersection1 + intersection2)) < 100:
                             union_bool = True
-                            union_of_documents = reduce(set.union, map(set, documents_appearing_in.values()))
+                            union_of_documents = list(reduce(set.union, map(set, documents_appearing_in.values())))
 
                 else:
                     union_bool = True
-                    union_of_documents = reduce(set.union, map(set, documents_appearing_in.values()))
+                    union_of_documents = list(reduce(set.union, map(set, documents_appearing_in.values())))
 
         document_scores = {}
 
         if not union_bool:
-            total_inter = set(intersection0+intersection1+intersection2)
+            total_inter = list(set(intersection0+intersection1+intersection2))
             for document in total_inter:
                 score = 0
                 document_vector = []
@@ -293,10 +293,10 @@ class Bm25_model:
                     documents_appearing_in[term] = self.extract_documents_term_appears_in(term_inverted_indexes[term][1])
 
             if date_bool:
-                intersection_of_documents = set(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind)
+                intersection_of_documents = list(set(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind))
 
             else:
-                intersection_of_documents = reduce(set.intersection, map(set, documents_appearing_in.values()))
+                intersection_of_documents = list(reduce(set.intersection, map(set, documents_appearing_in.values())))
 
 
             for doc in intersection_of_documents:
