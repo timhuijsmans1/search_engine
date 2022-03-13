@@ -111,12 +111,6 @@ class RetrievalExecution:
         start_time = datetime.datetime.now()
 
         self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index_tf.json", "retrieval/data/final_index.json", self.word2byte_tf, self.word2byte)
-        # position lists are required, mini index will look like {word: [doc_count, {doc_id: [position]}]}
-        # if phrases:
-        #     self.mini_index = load_mini_index(phrases, "retrieval/data/final_index.json", self.word2byte)
-        # # only need term frequencies, mini index will look like {word: [doc_count, {doc_id: term_frequency}]}
-        # if singles_updated:
-        #     self.mini_index = load_mini_index(singles_updated, "retrieval/data/final_index_tf.json", self.word2byte_tf)
 
         #print(self.mini_index.keys())
         print(f"decompressing the index and decoding took {datetime.datetime.now() - start_time}")
@@ -135,8 +129,6 @@ class RetrievalExecution:
             doc_numbers = doc_numbers | date_docs_set
 
         return doc_numbers
-
-
 
     def valid_index(self):
         """

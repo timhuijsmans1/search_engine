@@ -13,3 +13,4 @@ migrations
 !englishST.txt
 *.zip
 *.pyc
+venv

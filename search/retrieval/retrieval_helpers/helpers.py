@@ -247,8 +247,6 @@ def pre_process_nasdaq_list():
     cleaned_df = nyse_listed.drop(indexes_to_be_removed, axis=0)
     cleaned_df.to_csv("listed_companies_common_words_removed.csv")
 
-
-
 def is_phrase_bool(query):
     if '"' in query:
         return True
