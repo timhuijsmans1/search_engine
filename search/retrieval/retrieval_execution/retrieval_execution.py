@@ -152,12 +152,12 @@ class RetrievalExecution:
     def bm25_ranking(self):
         start_time = datetime.datetime.now()
         bm25 = Bm25_model()
-        ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
+        ranked_articles = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
                                      self.docs_in_date_range, self.date_bool)
 
         print(f"ranking the docs with the bm25 model took {datetime.datetime.now() - start_time}")
 
-        return ranked_docs
+        return ranked_articles
 
     def vsm_ranking(self):
         vsm = Vsm_model()
@@ -168,11 +168,11 @@ class RetrievalExecution:
         start_time = datetime.datetime.now()
         lm = Language_model(miu=1303, g=0.2)
 
-        ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
+        ranked_articles = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
                                    self.docs_in_date_range, self.date_bool,
                                    use_pitman_yor_process=True)
         print(f"ranking the docs with the lm model took {datetime.datetime.now() - start_time}")
-        return ranked_docs
+        return ranked_articles
 
     def execute_ranking(self, used_model, start_date, end_date):
         # returns false if none of the query terms match the index
