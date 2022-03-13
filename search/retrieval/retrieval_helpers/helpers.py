@@ -126,7 +126,7 @@ def sort_document_scores(document_scores, query):
 
 def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorted_document_scores):
 
-    date_weights_list = np.linspace(1.40, 1.001, 100)  # from x to y - N samples
+    date_weights_list = np.linspace(1.40, 0.8, 100)  # from x to y - N samples
     date_weights_dict = {}
     for i, value in enumerate(date_weights_list):
         date_weights_dict[i] = value
