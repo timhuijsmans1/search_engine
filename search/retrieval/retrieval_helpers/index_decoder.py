@@ -14,7 +14,6 @@ def delta_decoder(delta_list):
 
     return doc_ids
 
-@profile
 def decoder(encoded_index, query):
     mini_index = {}
     for word in set(sum(query, [])):

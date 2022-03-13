@@ -4,10 +4,18 @@ import csv
 
 import numpy as np
 import pandas as pd
+from functools import reduce
+
 from retrieval.models import TestArticle
 from datetime import datetime
 from textblob import TextBlob
 from spellchecker import SpellChecker
+
+import line_profiler
+import atexit
+
+profile = line_profiler.LineProfiler()
+atexit.register(profile.print_stats)
 
 
 def helper_example():
@@ -177,6 +185,13 @@ def split_list(a_list):
     half = len(a_list)//2
     return a_list[:half], a_list[half:]
 
+# def get_date_index_intersection(index, date_index):
+#     mini_index = {}
+#     return_index = {}
+#
+#
+#     return mini_index
+
 def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_bool):
     # this will be executed if the user is not re-running for the uncorrected query
     if is_first_run:
@@ -272,3 +287,19 @@ def apply_spellchecking(term, nyse_listed, is_finance_abbreviation, spell):
         corrected_term = spell.correction(term)
     return corrected_term
 
+def seperate_mix(query):
+    query_updated = []
+
+    for i, t in enumerate(query):
+        if len(query[i]) > 0:
+            query_updated.append(query[i])
+
+    singles = []
+    phrases = []
+    for term in query_updated:
+        if len(term) == 1:
+            singles.append(term[0])
+        else:
+            phrases.append(term)
+
+    return singles, phrases

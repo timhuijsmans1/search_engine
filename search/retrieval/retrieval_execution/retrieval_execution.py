@@ -1,4 +1,5 @@
 import json
+import ujson
 import time
 
 import numpy as np
@@ -22,6 +23,9 @@ from retrieval.retrieval_helpers.helpers import prepare_boolean_query
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
 from retrieval.retrieval_helpers.helpers import json_loader
+from retrieval.retrieval_helpers.helpers import apply_spellchecking
+from retrieval.retrieval_helpers.helpers import seperate_mix
+
 from retrieval.retrieval_helpers.helpers import date2doc_initializer
 from retrieval.retrieval_models.language_model.language_model import Language_model
 from retrieval.retrieval_models.proximity_retrieval.proximity_retrieval import proximity_retrieval
@@ -34,17 +38,15 @@ class RetrievalExecution:
 
     print("loading in search dictionaries")
     word2byte = json_loader("retrieval/data/word2byte.json")
+    word2byte_tf = json_loader("retrieval/data/word2byte_tf.json")
     date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
-
-    # print("loading and compressing index")
-    # encoded_index = index_compressor('retrieval/data/final_index.json')
-    # print(f"encoded index size: {total_size(encoded_index) / 1000000} mb")
 
     print(f"date2doc size: {total_size(date2doc) / 1000000} mb")
     print(f"doc_sizes size: {total_size(doc_sizes) / 1000000} mb")
     print(f"word2byte size: {total_size(word2byte) / 1000000} mb")
-    
+    print(f"word2byte_tf size: {total_size(word2byte_tf) / 1000000} mb")
+
     abv_dict = abv_loader()
 
     def __init__(
@@ -52,7 +54,7 @@ class RetrievalExecution:
             query,
             first_execution
     ):
-
+        print("query:", query)
         preprocessing = Preprocessing()
 
         self.set_initial_values(query)
@@ -68,19 +70,18 @@ class RetrievalExecution:
             self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
             return
 
-
-
         # pre process query
         self.pre_processed_query = []
 
         if not self.phrase_bool:
+            initialising_time = datetime.datetime.now()
             query, self.has_term_been_corrected = spellcheck_query(
                 query, self.abv_bool, first_execution,
                 self.phrase_bool)  # only spell check query if it's not boolean or proximity retrieval
             self.corrected_query = query  # save the spellchecked query before pre processing it
             for q in query.split():
-
                 self.pre_processed_query.append(preprocessing.apply_preprocessing(q))
+            # print(f"spellchecking took {datetime.datetime.now() - initialising_time}")
         else:
             r = r'"(.*?)"'
             if re.split(r, query):
@@ -99,31 +100,26 @@ class RetrievalExecution:
         self.corrected_query = ""
         self.proximity_query = False
         self.boolean_search = False
+        self.date_bool = False
         self.phrase_bool = is_phrase_bool(query)
         self.N = len(self.doc_sizes.keys())
         self.l_tot = sum(list(self.doc_sizes.values()))
+        self.docs_in_date_range = []
 
-    def mini_index_builder(self, retrieval_method):
-        #TODO: activate the commented out part, and change the models to accept tf or pos lists
-        # # disk loading method
-        # # if phrase or proxi search is activated, we want to load the index with position lists
-        # # The format of mini_index will be {word: [doc_count, {doc_id: [pos]}]}
-        # if self.phrase_bool == True or self.proximity_query == True:
-        #     self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
-
-        # # if phrase search is not activated, we want to load the index with tfs
-        # # The format of mini_index will be {word: [doc_count, {doc_id: tf}]}
-        # else:
-        #     self.mini_index = decoder(self.encoded_index, self.pre_processed_query)
+    def mini_index_builder(self):
 
         start_time = datetime.datetime.now()
-        if retrieval_method == "from disk":
-            self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index.json", self.word2byte)
-        if retrieval_method == "from memory":
-            self.mini_index = decoder(self.encoded_index, self.pre_processed_query)
 
-        print(self.mini_index.keys())
-        print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
+        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index_tf.json", "retrieval/data/final_index.json", self.word2byte_tf, self.word2byte)
+        # position lists are required, mini index will look like {word: [doc_count, {doc_id: [position]}]}
+        # if phrases:
+        #     self.mini_index = load_mini_index(phrases, "retrieval/data/final_index.json", self.word2byte)
+        # # only need term frequencies, mini index will look like {word: [doc_count, {doc_id: term_frequency}]}
+        # if singles_updated:
+        #     self.mini_index = load_mini_index(singles_updated, "retrieval/data/final_index_tf.json", self.word2byte_tf)
+
+        #print(self.mini_index.keys())
+        print(f"decompressing the index and decoding took {datetime.datetime.now() - start_time}")
 
         # check if mini_index is valid (at least one word of query is in the index)
         return self.valid_index()
@@ -136,7 +132,7 @@ class RetrievalExecution:
 
         for date in date_range:
             date_docs_set = self.date2doc.get(date, set())
-            doc_number = doc_numbers | date_docs_set
+            doc_numbers = doc_numbers | date_docs_set
 
         return doc_numbers
 
@@ -156,7 +152,8 @@ class RetrievalExecution:
     def bm25_ranking(self):
         start_time = datetime.datetime.now()
         bm25 = Bm25_model()
-        ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot)
+        ranked_docs = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
+                                     self.docs_in_date_range, self.date_bool)
 
         print(f"ranking the docs with the bm25 model took {datetime.datetime.now() - start_time}")
 
@@ -172,19 +169,21 @@ class RetrievalExecution:
         lm = Language_model(miu=1303, g=0.2)
 
         ranked_docs = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
+                                   self.docs_in_date_range, self.date_bool,
                                    use_pitman_yor_process=True)
         print(f"ranking the docs with the lm model took {datetime.datetime.now() - start_time}")
         return ranked_docs
 
     def execute_ranking(self, used_model, start_date, end_date):
         # returns false if none of the query terms match the index
-        if self.mini_index_builder("from disk") == False:
+        if self.mini_index_builder() == False:
             return False
 
         else:
             # if date filters are provided, get the date range doc union
             if start_date and end_date:
-                docs_in_date_range = self.get_date_range_union(start_date, end_date)
+                self.docs_in_date_range = self.get_date_range_union(start_date, end_date)
+                self.date_bool = True
 
             # document ranking
             start_time = datetime.datetime.now()
