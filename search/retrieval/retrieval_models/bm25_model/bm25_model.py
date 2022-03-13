@@ -175,7 +175,7 @@ class Bm25_model:
         elif p_docs:
             tot_docs = p_docs
 
-        sorted_articles = sort_document_scores(tot_docs, query_updated)
+        sorted_articles = sort_document_scores(tot_docs, query)
         end = time.time()
         print(end - start)
         return sorted_articles
