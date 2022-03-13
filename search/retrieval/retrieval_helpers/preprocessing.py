@@ -35,8 +35,8 @@ class Preprocessing:
     def preprocess_proximity_query(self, query):
         proximity_value, term1, term2 = re.findall('[a-zA-Z0-9]+', query)
         proximity_value = int(proximity_value)
-        term1 = self.stemmer.stem(term1)
-        term2 = self.stemmer.stem(term2)
+        term1 = [self.stemmer.stem(term1)]
+        term2 = [self.stemmer.stem(term2)]
         preprocessed_query = [term1, term2]
         return proximity_value, preprocessed_query
 
@@ -85,7 +85,7 @@ class Preprocessing:
                     if not identified_start_of_phrase:
                         terms.append(phrase)
                 else:
-                    term = self.clean_term(term)
+                    term = [self.clean_term(term)]
                     terms.append(term)
                 i+=1
         return terms, boolean_operators, position_with_parantheses
