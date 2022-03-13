@@ -1,7 +1,7 @@
 import json
 import math
 from functools import reduce
-
+import datetime
 from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.retrieval_helpers.helpers import extract_all_documents_term_appears_in
 from retrieval.retrieval_helpers.helpers import sort_document_scores
@@ -80,11 +80,14 @@ class Language_model:
             else:
                 phrases.append(term)
         tot_docs = {}
+
+        start_time = datetime.datetime.now()
         if singles:
             t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot, date_ind, date_bool, use_pitman_yor_process)
         if phrases:
             p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot, date_ind, date_bool)
 
+        print(f"Ranking with the lm model took {datetime.datetime.now() - start_time}")
         if t_docs and p_docs:
             tot_keys = set(list(t_docs.keys()) + list(p_docs.keys()))
             for k in tot_keys:

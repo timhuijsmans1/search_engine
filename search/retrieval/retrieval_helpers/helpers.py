@@ -126,9 +126,13 @@ def sort_document_scores(document_scores, query):
     sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
     sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
     flattened_query = set(sum(query, []))
+    start_time = datetime.now()
     returned_articles = database_retrieval(sorted_document_ids)
+    print(f"Database retrieval took {datetime.now() - start_time}")
+    start_time = datetime.now()
     reranked_articles = rerank_articles_based_on_title_date(1.10, returned_articles, flattened_query,
                                                             sorted_document_scores)
+    print(f"Re ranking the articles with weights took {datetime.now() - start_time}")
     return reranked_articles
 
 
@@ -138,8 +142,7 @@ def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorte
     date_weights_dict = {}
     for i, value in enumerate(date_weights_list):
         date_weights_dict[i] = value
-    print("document scores before re-ranking")
-    print(sorted_document_scores[:20])
+
     reranked_scores = dict(sorted_document_scores[:100])
     today = datetime.today().date()
     for article_id, article_object in articles.items():
@@ -154,8 +157,7 @@ def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorte
                 reranked_scores[article_id] = reranked_scores[article_id] * weight
 
     reranked_scores = sorted(reranked_scores.items(), key=lambda x: x[1], reverse=True)
-    print("document score after re-ranking")
-    print(reranked_scores[:20])
+
     reranked_document_ids = [id_score[0] for id_score in reranked_scores]
     reranked_articles = {}
     for id in reranked_document_ids:
