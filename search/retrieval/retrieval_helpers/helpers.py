@@ -1,6 +1,8 @@
 import json
 import re
 import csv
+
+import numpy as np
 import pandas as pd
 from retrieval.models import TestArticle
 from datetime import datetime
@@ -117,38 +119,35 @@ def sort_document_scores(document_scores, query):
     sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
     flattened_query = set(sum(query, []))
     returned_articles = database_retrieval(sorted_document_ids)
-    reranked_articles = rerank_weighing_title_terms(1.08, returned_articles, flattened_query, sorted_document_scores)
+    reranked_articles = rerank_articles_based_on_title_date(1.10, returned_articles, flattened_query,
+                                                            sorted_document_scores)
     return reranked_articles
 
 
-def rerank_weighing_title_terms(weight, articles, flattened_query, sorted_document_scores):
+def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorted_document_scores):
 
-    date_weights = {
-        0: 1.10,
-        1: 1.09,
-        2: 1.08,
-        3: 1.07,
-        4: 1.06,
-        5: 1.05,
-        6: 1.03,
-        7: 1.02,
-        8: 1.01,
-        9: 1.005,
-        10: 1.004
-    }
+    date_weights_list = np.linspace(1.40, 1.001, 100)  # from x to y - N samples
+    date_weights_dict = {}
+    for i, value in enumerate(date_weights_list):
+        date_weights_dict[i] = value
+    print("document scores before re-ranking")
+    print(sorted_document_scores[:20])
     reranked_scores = dict(sorted_document_scores[:100])
-    today = datetime.today()
+    today = datetime.today().date()
     for article_id, article_object in articles.items():
         title = article_object.title.split()
         title = [word.lower() for word in title]  # compare regardless of case
         date = article_object.publication_date
         days_difference = (today - date).days
-        if days_difference in date_weights.keys():
-            reranked_scores[article_id] = reranked_scores[article_id] * date_weights[days_difference]
+        if days_difference in date_weights_dict.keys():
+            reranked_scores[article_id] = reranked_scores[article_id] * date_weights_dict[days_difference]
         for term in title:
             if term in flattened_query:
                 reranked_scores[article_id] = reranked_scores[article_id] * weight
+
     reranked_scores = sorted(reranked_scores.items(), key=lambda x: x[1], reverse=True)
+    print("document score after re-ranking")
+    print(reranked_scores[:20])
     reranked_document_ids = [id_score[0] for id_score in reranked_scores]
     reranked_articles = {}
     for id in reranked_document_ids:
