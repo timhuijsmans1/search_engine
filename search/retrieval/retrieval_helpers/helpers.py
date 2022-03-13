@@ -1,9 +1,12 @@
 import json
 import re
 import csv
+
+import numpy as np
 import pandas as pd
 from functools import reduce
 
+from retrieval.models import TestArticle
 from datetime import datetime
 from textblob import TextBlob
 from spellchecker import SpellChecker
@@ -119,10 +122,50 @@ def write_results_to_file(ranked_docs, used_model, pre_processed_query):
             f.write("%d\n" % doc_id)
 
 
-def sort_document_scores(document_scores):
+def sort_document_scores(document_scores, query):
     sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
     sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
-    return sorted_document_ids
+    flattened_query = set(sum(query, []))
+    returned_articles = database_retrieval(sorted_document_ids)
+    reranked_articles = rerank_articles_based_on_title_date(1.10, returned_articles, flattened_query,
+                                                            sorted_document_scores)
+    return reranked_articles
+
+
+def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorted_document_scores):
+
+    date_weights_list = np.linspace(1.40, 0.8, 100)  # from x to y - N samples
+    date_weights_dict = {}
+    for i, value in enumerate(date_weights_list):
+        date_weights_dict[i] = value
+    print("document scores before re-ranking")
+    print(sorted_document_scores[:20])
+    reranked_scores = dict(sorted_document_scores[:100])
+    today = datetime.today().date()
+    for article_id, article_object in articles.items():
+        title = article_object.title.split()
+        title = [word.lower() for word in title]  # compare regardless of case
+        date = article_object.publication_date
+        days_difference = (today - date).days
+        if days_difference in date_weights_dict.keys():
+            reranked_scores[article_id] = reranked_scores[article_id] * date_weights_dict[days_difference]
+        for term in title:
+            if term in flattened_query:
+                reranked_scores[article_id] = reranked_scores[article_id] * weight
+
+    reranked_scores = sorted(reranked_scores.items(), key=lambda x: x[1], reverse=True)
+    print("document score after re-ranking")
+    print(reranked_scores[:20])
+    reranked_document_ids = [id_score[0] for id_score in reranked_scores]
+    reranked_articles = {}
+    for id in reranked_document_ids:
+        reranked_articles[id] = articles[id]
+    return reranked_articles
+
+
+def database_retrieval(doc_numbers):
+    print("retrieving from db")
+    return {doc_no: TestArticle.objects.get(pk=doc_no) for doc_no in doc_numbers}
 
 
 def is_proximity_query(query):
@@ -154,7 +197,7 @@ def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_boo
     if is_first_run:
         spell = SpellChecker()
         corrected_query = []
-        nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nyse_listed_companies.csv")
+        nyse_listed = pd.read_csv("retrieval/retrieval_helpers/listed_companies_common_words_removed.csv")
         # if is_phrase_bool:
         #     r = r'"(.*?)"'
         #     if re.split(r, query):
@@ -188,10 +231,20 @@ def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_boo
         return query, False
 
 def pre_process_nasdaq_list():
+    spell = SpellChecker()
     nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nasdaq_screener.csv")
     nyse_listed['Symbol'] = nyse_listed['Symbol'].str.lower()
     nyse_listed['Name'] = nyse_listed['Name'].str.lower()
     nyse_listed.to_csv("nyse_listed_companies.csv")
+
+    indexes_to_be_removed = []
+    for index, row in nyse_listed.iterrows():
+        spellcheck_term = spell.correction(row['Symbol'])
+        if spellcheck_term == row['Symbol']:
+            indexes_to_be_removed.append(index)
+    cleaned_df = nyse_listed.drop(indexes_to_be_removed, axis=0)
+    cleaned_df.to_csv("listed_companies_common_words_removed.csv")
+
 
 
 def is_phrase_bool(query):

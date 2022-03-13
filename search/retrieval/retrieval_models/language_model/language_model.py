@@ -94,8 +94,8 @@ class Language_model:
         elif p_docs:
             tot_docs = p_docs
 
-        sorted_docs = sort_document_scores(tot_docs)
-        return sorted_docs
+        sorted_articles = sort_document_scores(tot_docs, query)
+        return sorted_articles
 
     def phrase_rank(self, query, mini_index, N, doc_sizes, length_collection, date_ind, date_bool):
 
@@ -160,8 +160,8 @@ class Language_model:
 
             if date_bool:
                 if len(list(documents_appearing_in.keys())) > 1:
-                    intersection0 = set(
-                        list(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind))
+                    intersection0 = list(set(
+                        list(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(date_ind)))
                     if len(intersection0) < 100:
                         d1, d2 = split_list(list(documents_appearing_in.values()))
                         intersection1 = list(set(reduce(set.intersection, map(set, d1))).intersection(date_ind))
@@ -177,7 +177,7 @@ class Language_model:
 
             else:
                 if len(list(documents_appearing_in.keys())) > 1:
-                    intersection0 = reduce(set.intersection, map(set, documents_appearing_in.values()))
+                    intersection0 = list(reduce(set.intersection, map(set, documents_appearing_in.values())))
                     if len(intersection0) < 100:
                         d1, d2 = split_list(list(documents_appearing_in.values()))
                         intersection1 = list(reduce(set.intersection, map(set, d1)))
@@ -196,7 +196,7 @@ class Language_model:
         document_scores = {}
 
         if not union_bool:
-            total_inter = set(intersection0+intersection1+intersection2)
+            total_inter = list(set(intersection0+intersection1+intersection2))
             for document in total_inter:
                 score = 0
                 for term in query:

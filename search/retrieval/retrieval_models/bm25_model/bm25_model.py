@@ -175,9 +175,10 @@ class Bm25_model:
         elif p_docs:
             tot_docs = p_docs
 
-        sorted_docs = sort_document_scores(tot_docs)
+        sorted_articles = sort_document_scores(tot_docs, query)
         end = time.time()
-        return sorted_docs
+        print(end - start)
+        return sorted_articles
 
     def rank(self, query, inv_ind, N, doc_size, l_tot, date_ind, date_bool):
 
