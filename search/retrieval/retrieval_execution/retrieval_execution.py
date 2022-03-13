@@ -55,7 +55,7 @@ class RetrievalExecution:
             query,
             first_execution
     ):
-        
+        print("query:", query)
         preprocessing = Preprocessing()
 
         self.set_initial_values(query)
@@ -82,7 +82,7 @@ class RetrievalExecution:
             self.corrected_query = query  # save the spellchecked query before pre processing it
             for q in query.split():
                 self.pre_processed_query.append(preprocessing.apply_preprocessing(q))
-            print(f"spellchecking took {datetime.datetime.now() - initialising_time}")
+            # print(f"spellchecking took {datetime.datetime.now() - initialising_time}")
         else:
             r = r'"(.*?)"'
             if re.split(r, query):
@@ -119,8 +119,8 @@ class RetrievalExecution:
         # if singles_updated:
         #     self.mini_index = load_mini_index(singles_updated, "retrieval/data/final_index_tf.json", self.word2byte_tf)
 
-        print(self.mini_index.keys())
-        print(f"building the mini index and decoding took {datetime.datetime.now() - start_time}")
+        #print(self.mini_index.keys())
+        print(f"decompressing the index and decoding took {datetime.datetime.now() - start_time}")
 
         # check if mini_index is valid (at least one word of query is in the index)
         return self.valid_index()
@@ -187,8 +187,6 @@ class RetrievalExecution:
             if start_date and end_date:
                 self.docs_in_date_range = self.get_date_range_union(start_date, end_date)
                 self.date_bool = True
-
-
 
             # document ranking
             start_time = datetime.datetime.now()

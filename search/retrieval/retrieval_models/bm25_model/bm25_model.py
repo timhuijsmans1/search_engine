@@ -177,7 +177,6 @@ class Bm25_model:
 
         sorted_docs = sort_document_scores(tot_docs)
         end = time.time()
-        print(end - start)
         return sorted_docs
 
     def rank(self, query, inv_ind, N, doc_size, l_tot, date_ind, date_bool):
