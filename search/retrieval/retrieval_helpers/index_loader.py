@@ -7,7 +7,7 @@ from retrieval.retrieval_helpers.helpers import seperate_mix
 profile = line_profiler.LineProfiler()
 atexit.register(profile.print_stats)
 
-def load_mini_index(word_list, index_path_1, index_path_2, word2byte_tf, word2byte, is_proximity_query):
+def load_mini_index(word_list, index_path_1, index_path_2, word2byte_tf, word2byte):
     """
     input params:
     word_list : list
