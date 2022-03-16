@@ -35,9 +35,9 @@ class Preprocessing:
     def preprocess_proximity_query(self, query):
         proximity_value, term1, term2 = re.findall('[a-zA-Z0-9]+', query)
         proximity_value = int(proximity_value)
-        term1 = [self.stemmer.stem(term1)]
-        term2 = [self.stemmer.stem(term2)]
-        preprocessed_query = [term1, term2]
+        term1 = self.stemmer.stem(term1)
+        term2 = self.stemmer.stem(term2)
+        preprocessed_query = [[term1, term2]]
         return proximity_value, preprocessed_query
 
     def tokenize_text_file(self, text_file):
