@@ -141,8 +141,7 @@ class RetrievalExecution:
         else:
             return True
 
-    def bm25_ranking(self):
-        bm25 = Bm25_model()
+    def bm25_ranking(self, bm25):
         ranked_articles = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
                                      self.docs_in_date_range, self.date_bool)
 
@@ -153,28 +152,32 @@ class RetrievalExecution:
         ranked_docs = vsm.ranked_retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes)
         return ranked_docs
 
-    def lm_ranking(self):
-        lm = Language_model(miu=1303, g=0.2)
+    def lm_ranking(self, lm):
 
         ranked_articles = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
                                    self.docs_in_date_range, self.date_bool,
                                    use_pitman_yor_process=True)
         return ranked_articles
 
+    def create_ranking_model_object(self, used_model):
+        if used_model == "bm25":
+            return Bm25_model()
+        elif used_model == "lm":
+            return Language_model(miu=1303, g=0.2)
+
     def execute_ranking(self, used_model, start_date, end_date):
         # returns false if none of the query terms match the index
         if self.mini_index_builder() == False:
             return False
 
-        else:
-            # if date filters are provided, get the date range doc union
+
+        else: # if date filters are provided, get the date range doc union
             if start_date and end_date:
                 self.docs_in_date_range = self.get_date_range_union(start_date, end_date)
                 self.date_bool = True
-
+            ranking_model_object = self.create_ranking_model_object(used_model)
             # document ranking
             start_time = datetime.datetime.now()
-
             if self.proximity_query:  # if we are doing a proximity query no need to check which model is used,
                 # just retrieve the docs
                 ranked_doc_numbers = proximity_retrieval(self.mini_index, self.proximity_value)
@@ -182,19 +185,24 @@ class RetrievalExecution:
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
             elif self.boolean_search:
-                ranked_doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N,
+
+                doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N,
                                                        self.positions_with_parentheses, self.pre_processed_query)
-                ranked_article_objects = database_retrieval(ranked_doc_numbers)
+                ranked_article_objects = ranking_model_object.retrieval(self.pre_processed_query, self.mini_index, self.N,
+                                                                    self.doc_sizes, self.l_tot, self.docs_in_date_range,
+                                                                    self.date_bool, doc_numbers)
+
+
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
 
             if used_model == "bm25":
-                ranked_articles = self.bm25_ranking()
+                ranked_articles = self.bm25_ranking(ranking_model_object)
 
             if used_model == "vsm":
                 ranked_doc_numbers = self.vsm_ranking()
 
             if used_model == "lm":
-                ranked_articles = self.lm_ranking()
+                ranked_articles = self.lm_ranking(ranking_model_object)
 
             return ranked_articles, self.has_term_been_corrected, self.corrected_query, self.initial_query

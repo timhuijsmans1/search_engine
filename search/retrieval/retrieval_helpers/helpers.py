@@ -122,10 +122,14 @@ def write_results_to_file(ranked_docs, used_model, pre_processed_query):
             f.write("%d\n" % doc_id)
 
 
-def sort_document_scores(document_scores, query):
+def sort_document_scores(document_scores, query, is_boolean=False):
     sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
     sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
-    flattened_query = set(sum(query, []))
+    try:
+        flattened_query = set(sum(query, []))
+    except:
+        print("Couldn't flatten query, setting flattened query to given query ")
+        flattened_query = query
     start_time = datetime.now()
     returned_articles = database_retrieval(sorted_document_ids)
     print(f"Database retrieval took {datetime.now() - start_time}")
@@ -293,6 +297,7 @@ def seperate_mix(query):
     for i, t in enumerate(query):
         if len(query[i]) > 0:
             query_updated.append(query[i])
+
 
     singles = []
     phrases = []
