@@ -35,7 +35,6 @@ from retrieval.retrieval_helpers.index_decoder import *
 
 
 class RetrievalExecution:
-
     print("loading in search dictionaries")
     word2byte = json_loader("retrieval/data/word2byte.json")
     word2byte_tf = json_loader("retrieval/data/word2byte_tf.json")
@@ -62,12 +61,14 @@ class RetrievalExecution:
         self.abv_bool = False
 
         if is_proximity_query(query):
-            self.proximity_query, self.proximity_value, self.pre_processed_query = set_proximity_values(query, preprocessing)
+            self.proximity_query, self.proximity_value, self.pre_processed_query = set_proximity_values(query,
+                                                                                                        preprocessing)
             return  # only working with query in the format #15(term1, term2) for now
 
         bool_operators = find_boolean_operators(query)
         if len(bool_operators) > 0:
-            self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, preprocessing)
+            self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(
+                query, bool_operators, preprocessing)
             return
 
         # pre process query
@@ -110,9 +111,10 @@ class RetrievalExecution:
 
         start_time = datetime.datetime.now()
 
-        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index_tf.json", "retrieval/data/final_index.json", self.word2byte_tf, self.word2byte)
+        self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index_tf.json",
+                                          "retrieval/data/final_index.json", self.word2byte_tf, self.word2byte)
 
-        #print(self.mini_index.keys())
+        # print(self.mini_index.keys())
         print(f"decompressing the index and decoding took {datetime.datetime.now() - start_time}")
 
         # check if mini_index is valid (at least one word of query is in the index)
@@ -143,7 +145,7 @@ class RetrievalExecution:
 
     def bm25_ranking(self, bm25):
         ranked_articles = bm25.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
-                                     self.docs_in_date_range, self.date_bool)
+                                         self.docs_in_date_range, self.date_bool)
 
         return ranked_articles
 
@@ -155,8 +157,8 @@ class RetrievalExecution:
     def lm_ranking(self, lm):
 
         ranked_articles = lm.retrieval(self.pre_processed_query, self.mini_index, self.N, self.doc_sizes, self.l_tot,
-                                   self.docs_in_date_range, self.date_bool,
-                                   use_pitman_yor_process=True)
+                                       self.docs_in_date_range, self.date_bool,
+                                       use_pitman_yor_process=True)
         return ranked_articles
 
     def create_ranking_model_object(self, used_model):
@@ -171,7 +173,7 @@ class RetrievalExecution:
             return False
 
 
-        else: # if date filters are provided, get the date range doc union
+        else:  # if date filters are provided, get the date range doc union
             if start_date and end_date:
                 self.docs_in_date_range = self.get_date_range_union(start_date, end_date)
                 self.date_bool = True
@@ -187,11 +189,12 @@ class RetrievalExecution:
             elif self.boolean_search:
 
                 doc_numbers = boolean_retrieval(self.boolean_operators, self.mini_index, self.N,
-                                                       self.positions_with_parentheses, self.pre_processed_query)
-                ranked_article_objects = ranking_model_object.retrieval(self.pre_processed_query, self.mini_index, self.N,
-                                                                    self.doc_sizes, self.l_tot, self.docs_in_date_range,
-                                                                    self.date_bool, doc_numbers)
-
+                                                self.positions_with_parentheses, self.pre_processed_query)
+                ranked_article_objects = ranking_model_object.retrieval(self.pre_processed_query, self.mini_index,
+                                                                        self.N,
+                                                                        self.doc_sizes, self.l_tot,
+                                                                        self.docs_in_date_range,
+                                                                        self.date_bool, doc_numbers)
 
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query

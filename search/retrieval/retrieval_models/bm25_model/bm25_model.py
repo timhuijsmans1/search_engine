@@ -322,14 +322,13 @@ class Bm25_model:
                 doc_scores = self.compute_document_scores_phrase(boolean_docs, tf, df, N, doc_size, l_tot)
                 ranked_articles = self.boolean_retrieval(doc_scores, query)
                 return ranked_articles
-            self.compute_document_scores_phrase(intersection_of_documents, tf, df, N, doc_size, l_tot)
+            document_scores = self.compute_document_scores_phrase(document_scores, intersection_of_documents, tf, df, N, doc_size, l_tot)
         return document_scores
 
 
-    def compute_document_scores_phrase(self, documents_list, tf_dict, df, N, doc_size, l_tot):
-        document_scores = {}
-        for doc in documents_list:
+    def compute_document_scores_phrase(self, document_scores, documents_list, tf_dict, df, N, doc_size, l_tot):
 
+        for doc in documents_list:
             if doc in tf_dict.keys():
                 if doc in document_scores.keys():
                     document_scores[doc] += self.compute_weight_phrase_document(doc, tf_dict[doc], df, N, doc_size,
