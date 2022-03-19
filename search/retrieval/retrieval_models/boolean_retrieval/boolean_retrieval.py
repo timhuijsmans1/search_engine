@@ -33,7 +33,7 @@ def boolean_retrieval(boolean_operators, mini_index, N, positions_with_parenthes
                     phrase_doc_appearences[doc] = cons_count
             terms_appearances[list_name] = phrase_doc_appearences.keys()
     document_ids = apply_boolean_logic(terms_appearances, boolean_operators, N, positions_with_parentheses)
-    return document_ids[:100]  # return only first 100
+    return document_ids[:500]  # return only first 100
 
 
 def apply_boolean_logic(terms_appearances, boolean_operators, N, positions_with_parentheses):
