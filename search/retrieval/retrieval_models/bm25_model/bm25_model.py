@@ -207,13 +207,13 @@ class Bm25_model:
                 idf = math.log(1 + ((N - df + 0.5) / (df + 0.5)))
 
         if documents_appearing_in:
-            if boolean_docs:  ##  in retireval_execution we are calling rank for boolean ranked retrieval
-                document_scores = self.compute_document_scores(boolean_docs, query, inv_ind, documents_appearing_in,
-                                                               N, doc_size, l_tot, l_avg, idf)
-                ranked_articles = self.boolean_retrieval(document_scores, query)
-                return ranked_articles
 
             if date_bool:
+                if boolean_docs:
+                    boolean_docs = set(boolean_docs).intersection(date_ind)
+                    ranked_articles = self.boolean_retrieval(boolean_docs, query, inv_ind, documents_appearing_in, N, doc_size, l_tot, l_avg,
+                                                             idf)
+                    return ranked_articles
 
                 if len(list(documents_appearing_in.keys())) > 1:
                     intersection0 = list(
@@ -233,6 +233,11 @@ class Bm25_model:
                         set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind))
 
             else:
+                if boolean_docs:
+                    ranked_articles = self.boolean_retrieval(boolean_docs, query, inv_ind, documents_appearing_in, N, doc_size, l_tot,
+                                                             l_avg, idf)
+                    return ranked_articles  # boolean retrieval sorts and returns the articles so exit the function here
+
                 if len(list(documents_appearing_in.keys())) > 1:
                     intersection0 = list(reduce(set.intersection, map(set, documents_appearing_in.values())))
                     if len(intersection0) < 100:
@@ -281,7 +286,9 @@ class Bm25_model:
             document_scores[document] = score
         return document_scores
 
-    def boolean_retrieval(self, document_scores, query):
+    def boolean_retrieval(self, boolean_docs, query, mini_index, documents_appearing_in, N, doc_size, l_tot, l_avg, idf):
+        document_scores = self.compute_document_scores(boolean_docs, query, mini_index, documents_appearing_in,
+                                                           N, doc_size, l_tot, l_avg, idf)
         ranked_articles = sort_document_scores(document_scores, query)
         return ranked_articles
 
