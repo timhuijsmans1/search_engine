@@ -326,6 +326,8 @@ class Bm25_model:
             if not intersection_of_documents:
                 return False
             if boolean_docs:
+                if date_bool:
+                    boolean_docs = set(boolean_docs).intersection(date_ind)
                 doc_scores = self.compute_document_scores_phrase(boolean_docs, tf, df, N, doc_size, l_tot)
                 ranked_articles = self.boolean_retrieval(doc_scores, query)
                 return ranked_articles
