@@ -194,7 +194,7 @@ class RetrievalExecution:
                                                                         self.N,
                                                                         self.doc_sizes, self.l_tot,
                                                                         self.docs_in_date_range,
-                                                                        self.date_bool, doc_numbers)
+                                                                        self.date_bool, boolean_docs=doc_numbers)
 
                 print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query

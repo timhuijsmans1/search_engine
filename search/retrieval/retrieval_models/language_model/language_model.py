@@ -62,7 +62,7 @@ class Language_model:
         w_p_d = math.log((tf / self.miu) * (L_c / cf) + 1)
         return w_p_d
 
-    def retrieval(self, query, inv_ind, N, doc_size, l_tot, date_ind, date_bool, use_pitman_yor_process,
+    def retrieval(self, query, inv_ind, N, doc_size, l_tot, date_ind, date_bool, use_pitman_yor_process=True,
                   boolean_docs=None):
 
         query_updated = []
@@ -84,12 +84,12 @@ class Language_model:
 
         start_time = datetime.datetime.now()
         if singles:
-            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot, date_ind, date_bool, use_pitman_yor_process)
+            t_docs = self.rank(singles, inv_ind, N, doc_size, l_tot, date_ind, date_bool, use_pitman_yor_process, boolean_docs)
             if boolean_docs:
                 boolean_ranked_articles = t_docs  # if using boolean, rank function returns the ranked articles
                 return boolean_ranked_articles
         if phrases:
-            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot, date_ind, date_bool)
+            p_docs = self.phrase_rank(phrases, inv_ind, N, doc_size, l_tot, date_ind, date_bool, boolean_docs)
             if boolean_docs:
                 boolean_ranked_articles = p_docs
                 return boolean_ranked_articles  # just as abo e
@@ -136,6 +136,8 @@ class Language_model:
             if not intersection_of_documents:
                 return False
             if boolean_docs:
+                if date_bool:
+                    boolean_docs = set(boolean_docs).intersection(date_ind)
                 doc_scores = self.compute_document_scores_phrase(boolean_docs, tf, df, N, doc_sizes, length_collection)
                 ranked_articles = sort_document_scores(doc_scores, query)
                 return ranked_articles
@@ -160,12 +162,11 @@ class Language_model:
                     term)  # doing this here so we do not repeat it for each document
 
         if documents_appearing_in:
-            if boolean_docs:
-                document_scores = self.compute_document_scores(boolean_docs, query, mini_index, use_pitman_yor_process,
-                                                               query_term_frequency, l_tot, len(query), doc_sizes)
-                ranked_articles = sort_document_scores(document_scores, query)
-                return ranked_articles
             if date_bool:
+                if boolean_docs:
+                    boolean_docs = set(boolean_docs).intersection(date_ind)
+                    ranked_articles = self.boolean_retrieval(boolean_docs,query, mini_index, use_pitman_yor_process, query_term_frequency, l_tot, doc_sizes)
+                    return ranked_articles
                 if len(list(documents_appearing_in.keys())) > 1:
                     intersection0 = list(set(
                         list(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(
@@ -185,6 +186,9 @@ class Language_model:
                             date_ind))
 
             else:
+                if boolean_docs:
+                    ranked_articles = self.boolean_retrieval(boolean_docs, query, mini_index, use_pitman_yor_process, query_term_frequency, l_tot, doc_sizes)
+                    return ranked_articles
                 if len(list(documents_appearing_in.keys())) > 1:
                     intersection0 = list(reduce(set.intersection, map(set, documents_appearing_in.values())))
                     if len(intersection0) < 100:
@@ -261,6 +265,13 @@ class Language_model:
                                                                                length_collection)
         return document_scores
 
+    def boolean_retrieval(self, boolean_docs, query, mini_index, use_pitman_yor_process, query_term_frequency, l_tot,
+                          doc_sizes):
+        document_scores = self.compute_document_scores(boolean_docs, query, mini_index,
+                                                       use_pitman_yor_process,
+                                                       query_term_frequency, l_tot, len(query), doc_sizes)
+        ranked_articles = sort_document_scores(document_scores, query)
+        return ranked_articles
 
 if __name__ == '__main__':
     preprocessor = Preprocessing()
