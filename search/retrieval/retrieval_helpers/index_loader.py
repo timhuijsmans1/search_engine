@@ -45,7 +45,7 @@ def load_mini_index(word_list, index_path_1, index_path_2, word2byte_tf, word2by
                 except:
                     pass # if query word is not in our vocabulary
 
-    if phrases:
+    if phrases:  # this is hit with proximity query too, as the preprocessor prepares it in phrase format
         with open(index_path_2, 'r') as f:
             # only load and decode the index of each word once
             for word in set(sum(phrases, [])):
