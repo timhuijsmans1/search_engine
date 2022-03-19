@@ -122,7 +122,7 @@ def write_results_to_file(ranked_docs, used_model, pre_processed_query):
             f.write("%d\n" % doc_id)
 
 
-def sort_document_scores(document_scores, query, is_boolean=False):
+def sort_document_scores(document_scores, query):
     sorted_document_scores = sorted(document_scores.items(), key=lambda x: x[1], reverse=True)
     sorted_document_ids = [id_score[0] for id_score in sorted_document_scores[:100]]
     try:
@@ -138,7 +138,6 @@ def sort_document_scores(document_scores, query, is_boolean=False):
                                                             sorted_document_scores)
     print(f"Re ranking the articles with weights took {datetime.now() - start_time}")
     return reranked_articles
-
 
 def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorted_document_scores):
 
