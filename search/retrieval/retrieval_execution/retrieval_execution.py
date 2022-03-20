@@ -1,7 +1,7 @@
 import json
 import ujson
 import time
-
+import os
 import numpy as np
 import datetime
 import sys
@@ -10,9 +10,8 @@ import csv
 import re
 
 from retrieval.retrieval_helpers.index_loader import load_mini_index
-from retrieval.retrieval_helpers.preprocessing import Preprocessing
+from retrieval.retrieval_helpers.index_loader import gcs_mini_index
 from retrieval.retrieval_helpers.helpers import write_results_to_file
-from retrieval.retrieval_helpers.helpers import abv_loader
 from retrieval.retrieval_helpers.helpers import spellcheck_query
 from retrieval.retrieval_helpers.helpers import is_proximity_query
 from retrieval.retrieval_helpers.helpers import find_boolean_operators
@@ -22,9 +21,9 @@ from retrieval.retrieval_helpers.helpers import set_proximity_values
 from retrieval.retrieval_helpers.helpers import prepare_boolean_query
 from retrieval.retrieval_models.bm25_model.bm25_model import Bm25_model
 from retrieval.retrieval_models.vsm_model.vsm_model import Vsm_model
-from retrieval.retrieval_helpers.helpers import json_loader
 from retrieval.retrieval_helpers.helpers import apply_spellchecking
 from retrieval.retrieval_helpers.helpers import seperate_mix
+from retrieval.retrieval_helpers.helpers import app_startup
 
 from retrieval.retrieval_helpers.helpers import date2doc_initializer
 from retrieval.retrieval_models.language_model.language_model import Language_model
@@ -33,20 +32,32 @@ from retrieval.retrieval_models.boolean_retrieval.boolean_retrieval import boole
 from retrieval.retrieval_helpers.index_compression import *
 from retrieval.retrieval_helpers.index_decoder import *
 
+import line_profiler
+import atexit
 
+<<<<<<< HEAD
 class RetrievalExecution:
     print("loading in search dictionaries")
     word2byte = json_loader("retrieval/data/word2byte.json")
     word2byte_tf = json_loader("retrieval/data/word2byte_tf.json")
     date2doc = date2doc_initializer(json_loader("retrieval/data/date2doc.json"))
     doc_sizes = json_loader("retrieval/data/doc_sizes.json")
+=======
+profile = line_profiler.LineProfiler()
+atexit.register(profile.print_stats)
 
-    print(f"date2doc size: {total_size(date2doc) / 1000000} mb")
-    print(f"doc_sizes size: {total_size(doc_sizes) / 1000000} mb")
-    print(f"word2byte size: {total_size(word2byte) / 1000000} mb")
-    print(f"word2byte_tf size: {total_size(word2byte_tf) / 1000000} mb")
+class RetrievalExecution:
+>>>>>>> deployment
 
-    abv_dict = abv_loader()
+    # set argument to True for deployment loading of data from cloud storage
+    # If set to False, make sure local file names match with the GCS names for proper loading
+    deployment = True
+    if deployment:
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="retrieval/data/service-account-key.json"
+
+    # These are the global variables that need to be built once upon app startup
+    # and should be available at all times
+    word2byte, word2byte_tf, date2doc, doc_sizes, abv_dict, nyse_listed, spell_checker, N, l_tot, preprocessing = app_startup(deployment)
 
     def __init__(
             self,
@@ -54,21 +65,28 @@ class RetrievalExecution:
             first_execution
     ):
         print("query:", query)
-        preprocessing = Preprocessing()
 
         self.set_initial_values(query)
 
         self.abv_bool = False
 
         if is_proximity_query(query):
+<<<<<<< HEAD
             self.proximity_query, self.proximity_value, self.pre_processed_query = set_proximity_values(query,
                                                                                                         preprocessing)
+=======
+            self.proximity_query, self.proximity_value, self.pre_processed_query = set_proximity_values(query, self.preprocessing)
+>>>>>>> deployment
             return  # only working with query in the format #15(term1, term2) for now
 
         bool_operators = find_boolean_operators(query)
         if len(bool_operators) > 0:
+<<<<<<< HEAD
             self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(
                 query, bool_operators, preprocessing)
+=======
+            self.boolean_search, self.pre_processed_query, self.boolean_operators, self.positions_with_parentheses = prepare_boolean_query(query, bool_operators, self.preprocessing)
+>>>>>>> deployment
             return
 
         # pre process query
@@ -78,10 +96,10 @@ class RetrievalExecution:
             initialising_time = datetime.datetime.now()
             query, self.has_term_been_corrected = spellcheck_query(
                 query, self.abv_bool, first_execution,
-                self.phrase_bool)  # only spell check query if it's not boolean or proximity retrieval
+                self.phrase_bool, self.nyse_listed, self.spell_checker)  # only spell check query if it's not boolean or proximity retrieval
             self.corrected_query = query  # save the spellchecked query before pre processing it
             for q in query.split():
-                self.pre_processed_query.append(preprocessing.apply_preprocessing(q))
+                self.pre_processed_query.append(self.preprocessing.apply_preprocessing(q))
             # print(f"spellchecking took {datetime.datetime.now() - initialising_time}")
         else:
             r = r'"(.*?)"'
@@ -92,7 +110,7 @@ class RetrievalExecution:
             else:
                 terms = re.findall(r, query)
             for p in terms:
-                self.pre_processed_query.append(preprocessing.apply_preprocessing(p))
+                self.pre_processed_query.append(self.preprocessing.apply_preprocessing(p))
         return
 
     def set_initial_values(self, query):
@@ -103,18 +121,31 @@ class RetrievalExecution:
         self.boolean_search = False
         self.date_bool = False
         self.phrase_bool = is_phrase_bool(query)
-        self.N = len(self.doc_sizes.keys())
-        self.l_tot = sum(list(self.doc_sizes.values()))
         self.docs_in_date_range = []
 
     def mini_index_builder(self):
 
         start_time = datetime.datetime.now()
+<<<<<<< HEAD
 
         self.mini_index = load_mini_index(self.pre_processed_query, "retrieval/data/final_index_tf.json",
                                           "retrieval/data/final_index.json", self.word2byte_tf, self.word2byte)
 
         # print(self.mini_index.keys())
+=======
+        if self.deployment:
+            self.mini_index = gcs_mini_index(self.pre_processed_query, self.word2byte, self.word2byte_tf)
+        else:
+            self.mini_index = load_mini_index(
+                                            self.pre_processed_query,
+                                            "retrieval/data/final_index_tf.json",
+                                            "retrieval/data/final_index.json",
+                                            self.word2byte_tf,
+                                            self.word2byte
+            )
+
+        print(self.mini_index.keys())
+>>>>>>> deployment
         print(f"decompressing the index and decoding took {datetime.datetime.now() - start_time}")
 
         # check if mini_index is valid (at least one word of query is in the index)

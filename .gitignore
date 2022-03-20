@@ -7,6 +7,7 @@
 *.pem
 *.ini
 *.tsv
+*.csv
 migrations
 !retrieval_test.py
 !5_article_test.tsv

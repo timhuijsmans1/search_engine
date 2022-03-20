@@ -1,34 +1,33 @@
+# for deployment only to make sure venv is on python path
+import sys
+sys.path.append('/Users/timhuijsmans/documents/scotland/uni/text-tech/cw3/search/venv/lib/python3.8/site-packages')
+sys.path.append('/Users/timhuijsmans/documents/scotland/uni/text-tech/cw3/search')
+
 import json
 import re
 import csv
-
+import line_profiler
+import atexit
 import numpy as np
 import pandas as pd
-from functools import reduce
+import os
+import gcsfs
 
+from functools import reduce
+from retrieval.retrieval_helpers.preprocessing import Preprocessing
 from retrieval.models import TestArticle
 from datetime import datetime
 from textblob import TextBlob
 from spellchecker import SpellChecker
+from google.cloud import storage
 
-import line_profiler
-import atexit
-
+# initialise profiler tool
 profile = line_profiler.LineProfiler()
 atexit.register(profile.print_stats)
-
 
 def helper_example():
     # do something
     return None
-
-def abv_loader():
-    abv_dict = {}
-    with open("retrieval/data/Fin_abbv.csv", 'r') as fin_abbv:
-        abbv_temp = csv.reader(fin_abbv)
-        for a, m in abbv_temp:
-            abv_dict[a] = m
-    return abv_dict
 
 def date2doc_initializer(date2doc_string):
     date2doc_obj = {}
@@ -45,10 +44,21 @@ def read_text_file(filepath):
         return lines
 
 
-def json_loader(path):
-    with open(path, "r") as f:
-        output = json.load(f)
-
+def json_loader(file_name, deployment):
+    if deployment:
+        print(file_name)
+        # retrieve json string from cloud storage
+        client = storage.Client()
+        bucket = client.get_bucket('ttds2-338418.appspot.com')
+        blob = bucket.get_blob(file_name)
+        print("getting json string")
+        json_string = blob.download_as_string().decode()
+        print("decompressing json string")
+        output = json.loads(json_string)
+    else:
+        path = os.path.join("retrieval/data", file_name)
+        with open(path, "r") as f:
+            output = json.load(f)
     return output
 
 
@@ -197,12 +207,38 @@ def split_list(a_list):
 #
 #     return mini_index
 
-def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_bool):
+def load_csv_to_df(file_name, deployment):
+    if deployment:
+        fs = gcsfs.GCSFileSystem(project='ttds2-338418')
+        with fs.open(f'ttds2-338418.appspot.com/{file_name}') as f:
+            df = pd.read_csv(f)
+    else:
+        path = os.path.join("retrieval/data", file_name)
+        df = pd.read_csv(path)
+    return df
+
+def app_startup(deployment):
+    
+    # json loading
+    word2byte = json_loader("final_word2byte_gcs.json", deployment)
+    word2byte_tf = json_loader("final_word2byte_tf_gcs.json", deployment)
+    date2doc = date2doc_initializer(json_loader("date2doc.json", deployment))
+    doc_sizes = json_loader("doc_sizes.json", deployment)
+    abv_dict = json_loader("fin_abbv.json", deployment)
+    nyse_listed = load_csv_to_df("listed_companies_common_words_removed.csv", deployment)
+    preprocessing = Preprocessing(deployment)
+    
+    N = len(doc_sizes.keys())
+    l_tot = sum(list(doc_sizes.values()))
+    spell_checker = SpellChecker()
+
+    return word2byte, word2byte_tf, date2doc, doc_sizes, abv_dict, nyse_listed, spell_checker, N, l_tot, preprocessing
+
+def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_bool, nyse_listed, spell):
     # this will be executed if the user is not re-running for the uncorrected query
     if is_first_run:
-        spell = SpellChecker()
         corrected_query = []
-        nyse_listed = pd.read_csv("retrieval/retrieval_helpers/listed_companies_common_words_removed.csv")
+        
         # if is_phrase_bool:
         #     r = r'"(.*?)"'
         #     if re.split(r, query):
@@ -235,20 +271,25 @@ def spellcheck_query(query, is_finance_abbreviation, is_first_run, is_phrase_boo
     else:
         return query, False
 
-def pre_process_nasdaq_list():
-    spell = SpellChecker()
-    nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nasdaq_screener.csv")
-    nyse_listed['Symbol'] = nyse_listed['Symbol'].str.lower()
-    nyse_listed['Name'] = nyse_listed['Name'].str.lower()
-    nyse_listed.to_csv("nyse_listed_companies.csv")
+# def pre_process_nasdaq_list():
+#     """
+#     This code is not used in the app, 
+#     only used to update the list that is used in the app
+#     """
 
-    indexes_to_be_removed = []
-    for index, row in nyse_listed.iterrows():
-        spellcheck_term = spell.correction(row['Symbol'])
-        if spellcheck_term == row['Symbol']:
-            indexes_to_be_removed.append(index)
-    cleaned_df = nyse_listed.drop(indexes_to_be_removed, axis=0)
-    cleaned_df.to_csv("listed_companies_common_words_removed.csv")
+#     spell = SpellChecker()
+#     nyse_listed = pd.read_csv("retrieval/retrieval_helpers/nasdaq_screener.csv")
+#     nyse_listed['Symbol'] = nyse_listed['Symbol'].str.lower()
+#     nyse_listed['Name'] = nyse_listed['Name'].str.lower()
+#     nyse_listed.to_csv("nyse_listed_companies.csv")
+
+#     indexes_to_be_removed = []
+#     for index, row in nyse_listed.iterrows():
+#         spellcheck_term = spell.correction(row['Symbol'])
+#         if spellcheck_term == row['Symbol']:
+#             indexes_to_be_removed.append(index)
+#     cleaned_df = nyse_listed.drop(indexes_to_be_removed, axis=0)
+#     cleaned_df.to_csv("listed_companies_common_words_removed.csv")
 
 def is_phrase_bool(query):
     if '"' in query:

@@ -1,16 +1,37 @@
 import re
+import json
 
 from nltk.stem import PorterStemmer
-from retrieval.retrieval_helpers.helpers import read_text_file
-from retrieval.retrieval_helpers.helpers import is_phrase_bool
+from google.cloud import storage
 #from search.retrieval.retrieval_helpers.helpers import read_text_file  # - used for testing on Vlad's machine
 
 
 class Preprocessing:
-    def __init__(self):
-        self.stemmer = PorterStemmer()
-        stopwords = read_text_file("retrieval/data/englishST.txt")
+    def __init__(self, deployment):
+        self.stemmer = PorterStemmer()          
+        stopwords = self.json_loader("englishST.json", deployment)
         self.stopwords = self.preprocess_stopwords(stopwords)
+
+    def is_phrase_bool(self, query):
+        if '"' in query:
+            return True
+        else:
+            return False
+
+    def json_loader(self, file_name, deployment):
+        if deployment:
+            # retrieve json string from cloud storage
+            client = storage.Client()
+            bucket = client.get_bucket('ttds2-338418.appspot.com')
+            blob = bucket.get_blob(file_name)
+            json_string = blob.download_as_string()
+
+            output = json.loads(json_string)
+        else:
+            path = os.path.join("retrieval/data", file_name)
+            with open(path, "r") as f:
+                output = json.load(f)
+        return output
 
     def remove_stopwords(self, file):
         stopwords_set = set(self.stopwords)
@@ -72,13 +93,13 @@ class Preprocessing:
             if term not in boolean_operators:
                 if '(' in term:
                     position_with_parantheses.append(i)
-                if is_phrase_bool(term) and not identified_start_of_phrase:  # does this have quotes in it and first time we see it?
+                if self.is_phrase_bool(term) and not identified_start_of_phrase:  # does this have quotes in it and first time we see it?
                     phrase = []
                     identified_start_of_phrase = True
                     term = self.clean_term(term)
                     phrase.append(term)
                 elif identified_start_of_phrase:
-                    if is_phrase_bool(term):
+                    if self.is_phrase_bool(term):
                         identified_start_of_phrase = False
                     term = self.clean_term(term)
                     phrase.append(term)
