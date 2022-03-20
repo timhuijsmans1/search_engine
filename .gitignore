@@ -2,6 +2,7 @@
 !.gitignore
 **/__pycache__
 *.txt
+!requirements.txt
 *.json
 *test.py
 *.pem
