@@ -23,6 +23,7 @@ def index(request):
     return render(request, 'retrieval/index.html', context)
 
 def results(request):
+    start_time = datetime.now()
     first_execution_run = True
 
     form_data = request.GET
@@ -68,10 +69,12 @@ def results(request):
                            date_end
         )
 
+    retrieval_time = (datetime.now() - start_time).total_seconds()
     # Only return results if relevant documents are found
     if ranked_article_objects:
         # query DB with docnumbers
         results = list(ranked_article_objects.values())
+        number_of_results = len(results)
 
         if date_start and date_end:    
             # change dates to be accepted as url parameters
@@ -85,16 +88,17 @@ def results(request):
             'original_query': original_query,
             'start_of_date_range': date_start,
             'end_of_date_range': date_end,
-            'document_category': category
+            'document_category': category,
+            'retrieval_time': retrieval_time,
+            'number_of_results': number_of_results
         }
         return render(request, 'retrieval/results.html', context)
     else:
         return redirect('retrieval:index')
 
 def rerun_results(request, category, query, date_start, date_end):
+    start_time = datetime.now()
     first_execution_run = False
-
-    
 
     retrieval_execution = RetrievalExecution(query, first_execution_run)
 
@@ -111,15 +115,21 @@ def rerun_results(request, category, query, date_start, date_end):
                         date_start,
                         date_end,
     )
+    
+    retrieval_time = (datetime.now() - start_time).total_seconds()
+    print(retrieval_time)
 
     # Only return results if relevant documents are found
     if ranked_article_objects:
         # query DB with docnumbers
         results = list(ranked_article_objects.values())
+        number_of_results = len(results)
 
         context = {
             'results': results,
             'term_been_corrected': False,
+            'number_of_results': number_of_results,
+            'retrieval_time': retrieval_time
         }
         return render(request, 'retrieval/results.html', context)
     else:

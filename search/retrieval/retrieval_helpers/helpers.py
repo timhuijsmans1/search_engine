@@ -1,7 +1,5 @@
 # for deployment only to make sure venv is on python path
 import sys
-sys.path.append('/Users/timhuijsmans/documents/scotland/uni/text-tech/cw3/search/venv/lib/python3.8/site-packages')
-sys.path.append('/Users/timhuijsmans/documents/scotland/uni/text-tech/cw3/search')
 
 import json
 import re
@@ -180,7 +178,9 @@ def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorte
 
 def database_retrieval(doc_numbers):
     print("retrieving from db")
-    return {doc_no: TestArticle.objects.get(pk=doc_no) for doc_no in doc_numbers}
+    # indexing [0] because every pk is unique, and filter will only retrieve one element in the query set
+    query_results = {doc_no: TestArticle.objects.defer('content').filter(pk=doc_no)[0] for doc_no in doc_numbers}
+    return query_results
 
 
 def is_proximity_query(query):
