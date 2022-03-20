@@ -7,6 +7,12 @@ from retrieval.retrieval_helpers.helpers import date_checker
 
 from datetime import datetime
 
+import line_profiler
+import atexit
+
+profile = line_profiler.LineProfiler()
+atexit.register(profile.print_stats)
+
 
 def index(request):
     string = "Hi page"

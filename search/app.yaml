@@ -16,7 +16,7 @@
 
 # [START django_app]
 # [START gaestd_py_django_app_yaml]
-runtime: python39
+runtime: python38
 
 env_variables:
   # This setting is used in settings.py to configure your ALLOWED_HOSTS

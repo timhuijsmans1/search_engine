@@ -1,6 +1,7 @@
 import configparser
 import os
 
+from urllib.parse import urlparse
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -15,7 +16,7 @@ SECRET_KEY = 'django-insecure-mmf(uttu!8(ll8=8*s2l7akg53s($$1c7u+2w!m92^_)bfn=sd
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [urlparse('https://ttds2-338418.nw.r.appspot.com').netloc, '127.0.0.1']
 
 # Application definition
 
