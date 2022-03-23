@@ -143,6 +143,7 @@ class RetrievalExecution:
         are no results for the input query.
         """
         if len(self.mini_index.keys()) == 0:
+            print("I'm returning False")
             return False
         else:
             return True
@@ -174,7 +175,7 @@ class RetrievalExecution:
     def execute_ranking(self, used_model, start_date, end_date):
         # returns false if none of the query terms match the index
         if self.mini_index_builder() == False:
-            return False
+            return False, self.has_term_been_corrected, self.corrected_query, self.initial_query
 
 
         else:  # if date filters are provided, get the date range doc union
@@ -210,6 +211,7 @@ class RetrievalExecution:
                 ranked_doc_numbers = self.vsm_ranking()
 
             if used_model == "lm":
+                print("starting lm")
                 ranked_articles = self.lm_ranking(ranking_model_object)
 
             return ranked_articles, self.has_term_been_corrected, self.corrected_query, self.initial_query

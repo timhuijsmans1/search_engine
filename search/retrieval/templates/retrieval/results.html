@@ -4,11 +4,20 @@
 
 {% block content %}
 
-<p>Retrieved {{ number_of_results }} news articles ({{ retrieval_time }} seconds)</p>
+<form name='searchForm' action={% url 'retrieval:results' %} onsubmit="return validateForm()" method="GET">
+  <div class="row g-3 mt-2">
+      <div class="col-md-2">
+      </div>
+      <div class="col-md-6"> <input type="text" class="form-control" name="query" placeholder="Type another query here" required> </div>
+      <div class="col-md-3"> <button type='submit' class="btn btn-secondary btn-block">Search Results</button> </div>
+  </div>
+</form> 
+
+<p style="margin-top:10px">Retrieved {{ number_of_results }} news articles ({{ retrieval_time }} seconds)</p>
 
 {% if term_been_corrected  %}
 <p>Showing results for: {{corrected_query}}</p>
-Search instead for: <a href="{% url 'retrieval:rerun_results' category=document_category query=original_query date_start=start_of_date_range date_end=end_of_date_range %}" class="btn btn-secondary">
+Search instead for: <a href="{% url 'retrieval:rerun_results' query=original_query date_start=start_of_date_range date_end=end_of_date_range %}" class="btn btn-secondary">
                      {{original_query}}
                     </a>
 {% endif %}

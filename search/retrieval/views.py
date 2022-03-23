@@ -29,10 +29,8 @@ def results(request):
     form_data = request.GET
 
     query = form_data.get('query')
-    category = form_data.get('category')
     # validate category and query input, redirect back to home otherwise
-    if category == None:
-        return redirect('retrieval:index')
+
     if query == None:
         return redirect('retrieval:index')
 
@@ -74,29 +72,29 @@ def results(request):
     if ranked_article_objects:
         # query DB with docnumbers
         results = list(ranked_article_objects.values())
-        number_of_results = len(results)
+    else: results = []
+    number_of_results = len(results)
 
-        if date_start and date_end:    
-            # change dates to be accepted as url parameters
-            date_start = date_start.replace("/", "")
-            date_end = date_end.replace("/", "")
+    if date_start and date_end:    
+        # change dates to be accepted as url parameters
+        date_start = date_start.replace("/", "")
+        date_end = date_end.replace("/", "")
 
-        context = {
-            'results': results,
-            'term_been_corrected': has_term_been_corrected,
-            'corrected_query': corrected_query,
-            'original_query': original_query,
-            'start_of_date_range': date_start,
-            'end_of_date_range': date_end,
-            'document_category': category,
-            'retrieval_time': retrieval_time,
-            'number_of_results': number_of_results
-        }
-        return render(request, 'retrieval/results.html', context)
-    else:
-        return redirect('retrieval:index')
+    context = {
+        'results': results,
+        'term_been_corrected': has_term_been_corrected,
+        'corrected_query': corrected_query,
+        'original_query': original_query,
+        'start_of_date_range': date_start,
+        'end_of_date_range': date_end,
+        'retrieval_time': retrieval_time,
+        'number_of_results': number_of_results
+    }
+    return render(request, 'retrieval/results.html', context)
+    # else:
+    #     return redirect('retrieval:index')
 
-def rerun_results(request, category, query, date_start, date_end):
+def rerun_results(request, query, date_start, date_end):
     start_time = datetime.now()
     first_execution_run = False
 
@@ -111,7 +109,7 @@ def rerun_results(request, category, query, date_start, date_end):
         date_end = datetime.strptime(date_end, '%m%d%Y')
     
     ranked_article_objects, has_term_been_corrected, corrected_query, original_query = retrieval_execution.execute_ranking(
-                        "bm25",
+                        "lm",
                         date_start,
                         date_end,
     )
@@ -121,19 +119,18 @@ def rerun_results(request, category, query, date_start, date_end):
 
     # Only return results if relevant documents are found
     if ranked_article_objects:
-        # query DB with docnumbers
         results = list(ranked_article_objects.values())
-        number_of_results = len(results)
-
-        context = {
-            'results': results,
-            'term_been_corrected': False,
-            'number_of_results': number_of_results,
-            'retrieval_time': retrieval_time
-        }
-        return render(request, 'retrieval/results.html', context)
     else:
-        return redirect('retrieval:index')
+        results = []
+    number_of_results = len(results)
+
+    context = {
+        'results': results,
+        'term_been_corrected': False,
+        'number_of_results': number_of_results,
+        'retrieval_time': retrieval_time
+    }
+    return render(request, 'retrieval/results.html', context)
 
 def article_detail(request, document_id):
     article = get_object_or_404(TestArticle, pk=document_id)
