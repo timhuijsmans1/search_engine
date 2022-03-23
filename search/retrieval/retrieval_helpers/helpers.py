@@ -136,15 +136,12 @@ def sort_document_scores(document_scores, query):
     try:
         flattened_query = set(sum(query, []))
     except:
-        print("Couldn't flatten query, setting flattened query to given query ")
         flattened_query = query
     start_time = datetime.now()
     returned_articles = database_retrieval(sorted_document_ids)
-    print(f"Database retrieval took {datetime.now() - start_time}")
     start_time = datetime.now()
     reranked_articles = rerank_articles_based_on_title_date(1.10, returned_articles, flattened_query,
                                                             sorted_document_scores)
-    print(f"Re ranking the articles with weights took {datetime.now() - start_time}")
     return reranked_articles
 
 def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorted_document_scores):
@@ -177,7 +174,6 @@ def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorte
 
 
 def database_retrieval(doc_numbers):
-    print("retrieving from db")
     query_results = TestArticle.objects.in_bulk(doc_numbers)
     sorted_objects = {key: query_results[int(key)] for key in doc_numbers}
     return sorted_objects

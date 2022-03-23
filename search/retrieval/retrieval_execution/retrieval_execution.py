@@ -55,7 +55,6 @@ class RetrievalExecution:
             query,
             first_execution
     ):
-        print("query:", query)
 
         self.set_initial_values(query)
 
@@ -118,9 +117,6 @@ class RetrievalExecution:
                                             self.word2byte
             )
 
-        print(self.mini_index.keys())
-        print(f"decompressing the index and decoding took {datetime.datetime.now() - start_time}")
-
         # check if mini_index is valid (at least one word of query is in the index)
         return self.valid_index()
 
@@ -143,7 +139,6 @@ class RetrievalExecution:
         are no results for the input query.
         """
         if len(self.mini_index.keys()) == 0:
-            print("I'm returning False")
             return False
         else:
             return True
@@ -190,7 +185,6 @@ class RetrievalExecution:
                 # just retrieve the docs
                 ranked_doc_numbers = proximity_retrieval(self.mini_index, self.proximity_value)
                 ranked_article_objects = database_retrieval(ranked_doc_numbers)
-                print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
             elif self.boolean_search:
 
@@ -202,7 +196,6 @@ class RetrievalExecution:
                                                                         self.docs_in_date_range,
                                                                         self.date_bool, boolean_docs=doc_numbers)
 
-                print(f"database retrieval took {datetime.datetime.now() - start_time}")
                 return ranked_article_objects, self.has_term_been_corrected, self.corrected_query, self.initial_query
 
             if used_model == "bm25":
@@ -212,7 +205,6 @@ class RetrievalExecution:
                 ranked_doc_numbers = self.vsm_ranking()
 
             if used_model == "lm":
-                print("starting lm")
                 ranked_articles = self.lm_ranking(ranking_model_object)
 
             return ranked_articles, self.has_term_been_corrected, self.corrected_query, self.initial_query

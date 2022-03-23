@@ -84,7 +84,6 @@ def results(request):
 
     # add the parsed url to the results
     results = [(result, urlparse(result.url).netloc) for result in results]
-
     context = {
         'results': results,
         'term_been_corrected': has_term_been_corrected,
