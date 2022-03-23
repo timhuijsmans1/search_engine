@@ -209,8 +209,10 @@ def split_list(a_list):
 
 def load_csv_to_df(file_name, deployment):
     if deployment:
+        print('loading in file system')
         fs = gcsfs.GCSFileSystem(project='ttds2-338418')
         with fs.open(f'ttds2-338418.appspot.com/{file_name}') as f:
+            print('reading the csv file')
             df = pd.read_csv(f)
     else:
         path = os.path.join("retrieval/data", file_name)

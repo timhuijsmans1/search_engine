@@ -42,7 +42,7 @@ class RetrievalExecution:
 
     # set argument to True for deployment loading of data from cloud storage
     # If set to False, make sure local file names match with the GCS names for proper loading
-    deployment = True
+    deployment = False
     if deployment:
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="retrieval/data/service-account-key.json"
 
