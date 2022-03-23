@@ -169,11 +169,13 @@ class Language_model:
                     ranked_articles = self.boolean_retrieval(boolean_docs,query, mini_index, use_pitman_yor_process, query_term_frequency, l_tot, doc_sizes)
                     return ranked_articles
                 if len(list(documents_appearing_in.keys())) > 1:
-                    intersection0 = list(set(
-                        list(reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(
-                            date_ind)))
+                    intersection0 = list(
+                        set(
+                            reduce(set.intersection, map(set, documents_appearing_in.values()))).intersection(
+                            date_ind
+                        )
+                        )
                     if len(intersection0) < 100:
-                        print("intersecting")
                         d1, d2 = split_list(list(documents_appearing_in.values()))
                         intersection1 = list(set(reduce(set.intersection, map(set, d1))).intersection(date_ind))
                         intersection2 = list(set(reduce(set.intersection, map(set, d2))).intersection(date_ind))
@@ -181,14 +183,11 @@ class Language_model:
                             union_bool = True
                             union_of_documents = list(set(
                                 reduce(set.union, map(set, documents_appearing_in.values()))).intersection(date_ind))
-                        print("finished intersecting")
                 else:
-                    print("intersecting 2")
                     union_bool = True
                     union_of_documents = list(
                         set(reduce(set.union, map(set, documents_appearing_in.values()))).intersection(
                             date_ind))
-                    print("finished intersecting 2")
 
             else:
                 if boolean_docs:
