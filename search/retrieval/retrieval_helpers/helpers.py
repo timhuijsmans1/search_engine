@@ -178,9 +178,9 @@ def rerank_articles_based_on_title_date(weight, articles, flattened_query, sorte
 
 def database_retrieval(doc_numbers):
     print("retrieving from db")
-    # indexing [0] because every pk is unique, and filter will only retrieve one element in the query set
-    query_results = {doc_no: TestArticle.objects.defer('content').filter(pk=doc_no)[0] for doc_no in doc_numbers}
-    return query_results
+    query_results = TestArticle.objects.in_bulk(doc_numbers)
+    sorted_objects = {key: query_results[int(key)] for key in doc_numbers}
+    return sorted_objects
 
 
 def is_proximity_query(query):
