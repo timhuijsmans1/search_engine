@@ -177,11 +177,12 @@ class RetrievalExecution:
         if self.mini_index_builder() == False:
             return False, self.has_term_been_corrected, self.corrected_query, self.initial_query
 
-
         else:  # if date filters are provided, get the date range doc union
             if start_date and end_date:
                 self.docs_in_date_range = self.get_date_range_union(start_date, end_date)
                 self.date_bool = True
+                if len(self.docs_in_date_range) == 0:
+                    return False, self.has_term_been_corrected, self.corrected_query, self.initial_query
             ranking_model_object = self.create_ranking_model_object(used_model)
             # document ranking
             start_time = datetime.datetime.now()
