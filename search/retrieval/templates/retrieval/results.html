@@ -28,9 +28,10 @@ Search instead for: <a href="{% url 'retrieval:rerun_results' query=original_que
       <li>
         <div class="card">
           <div class="card-body">
-            <h5 class="card-title">{{ result.title }}</h5>
-            <p class="card-text">Published on: {{ result.publication_date|date:'m/d/Y' }}</p>
-            <p class="card-text">Topic: {{ result.topic }}</p>
+            <h5 class="card-title">{{ result.0.title }}</h5>
+            <p class="card-text">Publisher: {{ result.1 }}</p>
+            <p class="card-text">Published on: {{ result.0.publication_date|date:'m/d/Y' }}</p>
+            <p class="card-text">Topic: {{ result.0.topic }}</p>
             <div>  
               <a href="{{ result.url }}" class="btn btn-secondary">Go to source</a>
             </div>

@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 
+from urllib.parse import urlparse
+
 from retrieval.models import TestArticle
 from retrieval.retrieval_execution.retrieval_execution import RetrievalExecution
 from retrieval.retrieval_helpers.helpers import date_checker
@@ -80,6 +82,9 @@ def results(request):
         date_start = date_start.replace("/", "")
         date_end = date_end.replace("/", "")
 
+    # add the parsed url to the results
+    results = [(result, urlparse(result.url).netloc) for result in results]
+
     context = {
         'results': results,
         'term_been_corrected': has_term_been_corrected,
@@ -91,8 +96,6 @@ def results(request):
         'number_of_results': number_of_results
     }
     return render(request, 'retrieval/results.html', context)
-    # else:
-    #     return redirect('retrieval:index')
 
 def rerun_results(request, query, date_start, date_end):
     start_time = datetime.now()
@@ -123,6 +126,9 @@ def rerun_results(request, query, date_start, date_end):
     else:
         results = []
     number_of_results = len(results)
+
+    # add the parsed url to the results
+    results = [(result, urlparse(result.url).netloc) for result in results]
 
     context = {
         'results': results,
